@@ -90,7 +90,6 @@ export function ReportsList({
           New Report
         </Button>
       </div>
-
       {filteredReports.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -188,7 +187,6 @@ export function ReportsList({
         selectedTenantId={selectedTenantId}
         onCreateReport={onCreateReport}
       />
-
       <AlertDialog
         open={pendingToggle !== null}
         onOpenChange={(open) => {
@@ -205,7 +203,7 @@ export function ReportsList({
             <AlertDialogDescription>
               {pendingToggle?.nextEnabled ? (
                 <>
-                  This will enable automatic email sending for the candidate
+                  This will enable automatic emails to be sent to the candidate
                   report in{" "}
                   <span className="font-medium">
                     {pendingToggle.report.name}
