@@ -11,4 +11,5 @@ export interface FeedbackReport {
   name: string
   reportType: ReportType
   createdAt: string
+  sendOnCompletion: boolean
 }

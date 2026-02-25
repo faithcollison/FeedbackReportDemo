@@ -11,6 +11,7 @@ export const initialReports: FeedbackReport[] = [
     name: "Example Assessment 1",
     reportType: "candidate",
     createdAt: "2025-11-15",
+    sendOnCompletion: false,
   },
   {
     id: "r2",
@@ -18,6 +19,7 @@ export const initialReports: FeedbackReport[] = [
     name: "Example Assessment 2",
     reportType: "hiring-manager",
     createdAt: "2025-12-03",
+    sendOnCompletion: false,
   },
   {
     id: "r3",
@@ -25,5 +27,6 @@ export const initialReports: FeedbackReport[] = [
     name: "Senior Engineer Screen",
     reportType: "candidate",
     createdAt: "2026-01-10",
+    sendOnCompletion: false,
   },
 ]

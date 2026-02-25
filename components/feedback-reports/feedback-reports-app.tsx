@@ -27,9 +27,39 @@ export function FeedbackReportsApp() {
       name,
       reportType,
       createdAt: new Date().toISOString().split("T")[0],
+      sendOnCompletion: false,
     }
     setReports((prev) => [...prev, newReport])
     setCurrentReportId(newReport.id)
+  }
+
+  const handleSetSendOnCompletion = (reportId: string, enabled: boolean) => {
+    setReports((prev) => {
+      const target = prev.find((r) => r.id === reportId)
+      if (!target) return prev
+      if (target.reportType !== "candidate") {
+        return prev.map((report) =>
+          report.id === reportId
+            ? { ...report, sendOnCompletion: false }
+            : report
+        )
+      }
+
+      return prev.map((report) => {
+        if (report.id === reportId) {
+          return { ...report, sendOnCompletion: enabled }
+        }
+        if (
+          enabled &&
+          report.tenantId === target.tenantId &&
+          report.name === target.name &&
+          report.reportType !== target.reportType
+        ) {
+          return { ...report, sendOnCompletion: false }
+        }
+        return report
+      })
+    })
   }
 
   return (
@@ -39,7 +69,7 @@ export function FeedbackReportsApp() {
         onNavigateHome={() => setCurrentReportId(null)}
       />
       {currentReport ? (
-        <ReportCanvas />
+        <ReportCanvas reportId={currentReport.id} />
       ) : (
         <ReportsList
           reports={reports}
@@ -48,6 +78,7 @@ export function FeedbackReportsApp() {
           onSelectTenant={setSelectedTenantId}
           onSelectReport={(report) => setCurrentReportId(report.id)}
           onCreateReport={handleCreateReport}
+          onSetSendOnCompletion={handleSetSendOnCompletion}
         />
       )}
     </div>

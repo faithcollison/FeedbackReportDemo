@@ -1,27 +1,48 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { FeedbackReport, Tenant, ReportType } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import type { FeedbackReport, Tenant, ReportType } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { CreateReportDialog } from "./create-report-dialog"
-import { Plus, FileText, User, Briefcase } from "lucide-react"
+} from "@/components/ui/select";
+import { CreateReportDialog } from "./create-report-dialog";
+import { Plus, FileText, User, Briefcase, Send } from "lucide-react";
 
 interface ReportsListProps {
-  reports: FeedbackReport[]
-  tenants: Tenant[]
-  selectedTenantId: string
-  onSelectTenant: (tenantId: string) => void
-  onSelectReport: (report: FeedbackReport) => void
-  onCreateReport: (name: string, tenantId: string, reportType: ReportType) => void
+  reports: FeedbackReport[];
+  tenants: Tenant[];
+  selectedTenantId: string;
+  onSelectTenant: (tenantId: string) => void;
+  onSelectReport: (report: FeedbackReport) => void;
+  onCreateReport: (
+    name: string,
+    tenantId: string,
+    reportType: ReportType,
+  ) => void;
+  onSetSendOnCompletion: (reportId: string, enabled: boolean) => void;
 }
 
 export function ReportsList({
@@ -31,16 +52,26 @@ export function ReportsList({
   onSelectTenant,
   onSelectReport,
   onCreateReport,
+  onSetSendOnCompletion,
 }: ReportsListProps) {
-  const [createOpen, setCreateOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [pendingToggle, setPendingToggle] = useState<{
+    report: FeedbackReport;
+    nextEnabled: boolean;
+    conflictingReport: FeedbackReport | null;
+  } | null>(null);
 
-  const filteredReports = reports.filter((r) => r.tenantId === selectedTenantId)
+  const filteredReports = reports.filter(
+    (r) => r.tenantId === selectedTenantId,
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-muted-foreground">Tenant</label>
+          <label className="text-sm font-medium text-muted-foreground">
+            Tenant
+          </label>
           <Select value={selectedTenantId} onValueChange={onSelectTenant}>
             <SelectTrigger className="w-[200px]">
               <SelectValue />
@@ -94,11 +125,56 @@ export function ReportsList({
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="secondary">
-                  {report.reportType === "candidate"
-                    ? "Candidate"
-                    : "Hiring Manager"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    {report.reportType === "candidate"
+                      ? "Candidate"
+                      : "Hiring Manager"}
+                  </Badge>
+                  {report.reportType === "candidate" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={
+                        "h-8 gap-1 text-xs " +
+                        (report.sendOnCompletion
+                          ? "border-emerald-300 text-emerald-700"
+                          : "text-muted-foreground")
+                      }
+                      title={
+                        report.sendOnCompletion
+                          ? "Enabled: auto-send on completion"
+                          : "Disabled: auto-send on completion"
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const nextEnabled = !report.sendOnCompletion;
+                        const conflictingReport = nextEnabled
+                          ? (reports.find(
+                              (r) =>
+                                r.id !== report.id &&
+                                r.tenantId === report.tenantId &&
+                                r.name === report.name &&
+                                r.reportType !== report.reportType &&
+                                r.sendOnCompletion,
+                            ) ?? null)
+                          : null;
+                        setPendingToggle({
+                          report,
+                          nextEnabled,
+                          conflictingReport,
+                        });
+                      }}
+                    >
+                      <Send className="size-3.5" />
+                      Auto-send {report.sendOnCompletion ? "On" : "Off"}
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">
+                      Auto-send not available
+                    </span>
+                  )}
+                </div>
               </CardHeader>
             </Card>
           ))}
@@ -112,6 +188,65 @@ export function ReportsList({
         selectedTenantId={selectedTenantId}
         onCreateReport={onCreateReport}
       />
+
+      <AlertDialog
+        open={pendingToggle !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingToggle(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingToggle?.nextEnabled
+                ? "Enable send on completion?"
+                : "Disable send on completion?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingToggle?.nextEnabled ? (
+                <>
+                  This will enable automatic email sending for the candidate
+                  report in{" "}
+                  <span className="font-medium">
+                    {pendingToggle.report.name}
+                  </span>
+                  .
+                  {pendingToggle.conflictingReport && (
+                    <>
+                      {" "}
+                      The other report type for this assessment is currently
+                      enabled and will be turned off.
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  This will disable automatic sending for{" "}
+                  <span className="font-medium">
+                    {pendingToggle?.report.name}
+                  </span>
+                  .
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingToggle) return;
+                onSetSendOnCompletion(
+                  pendingToggle.report.id,
+                  pendingToggle.nextEnabled,
+                );
+                setPendingToggle(null);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  )
+  );
 }

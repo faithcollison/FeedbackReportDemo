@@ -14,10 +14,10 @@ interface SectionStyle {
   textColor: string
   content?: string
   logoUrl?: string
+  showTitle?: boolean
   titleText?: string
-  subtitleText?: string
-  titleFontSize?: number
-  subtitleFontSize?: number
+  titleBgColor?: string
+  titleTextColor?: string
 }
 
 interface ConstructData {
@@ -26,10 +26,7 @@ interface ConstructData {
 }
 
 interface ReportSettings {
-  title: string
-  owner: string
   templateName: string
-  sendToCandidates: boolean
 }
 
 interface PreviewData {
@@ -71,9 +68,44 @@ export default function PreviewPage() {
   }
 
   const { sections, constructData, settings, sectionStyles } = data
+  const PREVIEW_CANDIDATE_NAME = "Joe Bloggs"
 
   function getStyle(sectionId: string): SectionStyle {
     return sectionStyles[sectionId] ?? { bgColor: "#ffffff", textColor: "#000000" }
+  }
+
+  function resolveHeaderTitle(template: string): string {
+    const candidateName = PREVIEW_CANDIDATE_NAME
+    return template
+      .replace(/\{\{\s*candidateName\s*\}\}/g, candidateName)
+      .replace(/\{\{\s*candidate\s*\}\}/g, candidateName)
+  }
+
+  function resolveHeaderSubtitle(template: string): string {
+    const assessmentName = "Example Assessment 1"
+    return template.replace(/\{\{\s*assessmentName\s*\}\}/g, assessmentName)
+  }
+
+  function renderSectionTitle(s: SectionStyle) {
+    if (!s.showTitle || !s.titleText?.trim()) return null
+    return (
+      <div
+        className="px-10 py-4"
+        style={{
+          backgroundColor: s.titleBgColor ?? "#4338ca",
+          color: s.titleTextColor ?? "#ffffff",
+        }}
+      >
+        <h2 className="text-xl font-bold">{s.titleText}</h2>
+      </div>
+    )
+  }
+
+  function getRankWithinGroup(section: ReportSection, type: "strengths" | "weaknesses"): number {
+    if (!section.parentId) return 0
+    const siblings = sections.filter((s) => s.parentId === section.parentId && s.type === type)
+    const idx = siblings.findIndex((s) => s.id === section.id)
+    return idx >= 0 ? idx : 0
   }
 
   function styleProps(sectionId: string): React.CSSProperties {
@@ -97,13 +129,10 @@ export default function PreviewPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h1 className="text-4xl font-light leading-tight">
-                      {settings.title || "Feedback report for"}
+                      {resolveHeaderTitle(s.titleText || "Feedback report for {{candidateName}}")}
                     </h1>
-                    <p className="text-4xl font-light leading-tight">
-                      {settings.owner || "Candidate Name"}
-                    </p>
                     {s.content && (
-                      <p className="mt-6 text-base opacity-80">{s.content}</p>
+                      <p className="mt-6 text-base opacity-80">{resolveHeaderSubtitle(s.content)}</p>
                     )}
                   </div>
                   {s.logoUrl && (
@@ -113,57 +142,48 @@ export default function PreviewPage() {
               </div>
             )
 
-          case "title":
-            return (
-              <div key={section.id} className="px-10 py-5" style={sp}>
-                <h2
-                  style={{ fontSize: s.titleFontSize ?? 24 }}
-                  className="font-bold"
-                >
-                  {s.titleText || "Untitled Section"}
-                </h2>
-                {s.subtitleText && (
-                  <p
-                    style={{ fontSize: s.subtitleFontSize ?? 16 }}
-                    className="mt-1 opacity-80"
-                  >
-                    {s.subtitleText}
-                  </p>
-                )}
-              </div>
-            )
-
           case "paragraph":
             return (
-              <div key={section.id} className="px-10 py-6" style={sp}>
-                {s.content ? (
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{s.content}</p>
-                ) : (
-                  <p className="text-sm italic opacity-40">No content entered.</p>
-                )}
+              <div key={section.id}>
+                {renderSectionTitle(s)}
+                <div className="px-10 py-6" style={sp}>
+                  {s.content ? (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{s.content}</p>
+                  ) : (
+                    <p className="text-sm italic opacity-40">No content entered.</p>
+                  )}
+                </div>
               </div>
             )
 
           case "strengths-group":
           case "development-group":
-            return null
+            if (!s.content && !s.showTitle) return null
+            return (
+              <div key={section.id}>
+                {renderSectionTitle(s)}
+                {s.content && (
+                  <div className="px-10 py-6" style={sp}>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{s.content}</p>
+                  </div>
+                )}
+              </div>
+            )
 
           case "strengths": {
             const items = CONSTRUCTS
               .map((c) => ({ name: c.name, text: constructData[c.id]?.strengths ?? "" }))
               .filter((i) => i.text.trim())
+            const rank = getRankWithinGroup(section, "strengths")
+            const item = items[rank]
             return (
               <div key={section.id} className="px-10 py-6" style={sp}>
-                {items.length === 0 ? (
+                {!item ? (
                   <p className="text-sm italic opacity-40">No strengths content added.</p>
                 ) : (
-                  <div className="space-y-8">
-                    {items.map((item) => (
-                      <div key={item.name}>
-                        <h3 className="text-base font-bold mb-2">{item.name}</h3>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
-                      </div>
-                    ))}
+                  <div>
+                    <h3 className="text-base font-bold mb-2">{item.name}</h3>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
                   </div>
                 )}
               </div>
@@ -174,18 +194,16 @@ export default function PreviewPage() {
             const items = CONSTRUCTS
               .map((c) => ({ name: c.name, text: constructData[c.id]?.weaknesses ?? "" }))
               .filter((i) => i.text.trim())
+            const rank = getRankWithinGroup(section, "weaknesses")
+            const item = items[rank]
             return (
               <div key={section.id} className="px-10 py-6" style={sp}>
-                {items.length === 0 ? (
+                {!item ? (
                   <p className="text-sm italic opacity-40">No development area content added.</p>
                 ) : (
-                  <div className="space-y-8">
-                    {items.map((item) => (
-                      <div key={item.name}>
-                        <h3 className="text-base font-bold mb-2">{item.name}</h3>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
-                      </div>
-                    ))}
+                  <div>
+                    <h3 className="text-base font-bold mb-2">{item.name}</h3>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
                   </div>
                 )}
               </div>
