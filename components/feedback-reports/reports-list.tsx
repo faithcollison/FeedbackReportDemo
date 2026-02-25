@@ -203,8 +203,8 @@ export function ReportsList({
             <AlertDialogDescription>
               {pendingToggle?.nextEnabled ? (
                 <>
-                  This will enable automatic emails to be sent to the candidate
-                  report in{" "}
+                  This will enable automatic emails to be sent with the
+                  candidate report for{" "}
                   <span className="font-medium">
                     {pendingToggle.report.name}
                   </span>
