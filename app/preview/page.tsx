@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 interface ReportSection {
   id: string
@@ -36,6 +36,15 @@ interface PreviewData {
   sectionStyles: Record<string, SectionStyle>
 }
 
+interface ConstructBankEntry {
+  id: string
+  name: string
+  strengths: string
+  weaknesses: string
+}
+
+const CONSTRUCT_BANK_STORAGE_KEY = "report-builder-construct-bank"
+
 const CONSTRUCTS = [
   { id: "collaboration", name: "Collaboration" },
   { id: "growth", name: "Growth Mindset" },
@@ -45,8 +54,18 @@ const CONSTRUCTS = [
   { id: "problem-solving", name: "Problem Solving" },
 ]
 
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
 export default function PreviewPage() {
   const [data, setData] = useState<PreviewData | null>(null)
+  const [constructBankEntries, setConstructBankEntries] = useState<ConstructBankEntry[]>([])
 
   useEffect(() => {
     const raw = localStorage.getItem("report-preview-data")
@@ -57,7 +76,52 @@ export default function PreviewPage() {
         // ignore parse errors
       }
     }
+
+    const constructBankRaw = localStorage.getItem(CONSTRUCT_BANK_STORAGE_KEY)
+    if (constructBankRaw) {
+      try {
+        const parsed = JSON.parse(constructBankRaw)
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(
+            (item): item is ConstructBankEntry =>
+              !!item &&
+              typeof item.id === "string" &&
+              typeof item.name === "string" &&
+              typeof item.strengths === "string" &&
+              typeof item.weaknesses === "string"
+          )
+          setConstructBankEntries(valid)
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
   }, [])
+
+  const randomPools = useMemo(() => {
+    if (!data) {
+      return { strengths: [] as { name: string; text: string }[], weaknesses: [] as { name: string; text: string }[] }
+    }
+
+    const bankStrengths = constructBankEntries
+      .map((entry) => ({ name: entry.name, text: entry.strengths }))
+      .filter((item) => item.text.trim())
+    const bankWeaknesses = constructBankEntries
+      .map((entry) => ({ name: entry.name, text: entry.weaknesses }))
+      .filter((item) => item.text.trim())
+
+    const fallbackStrengths = CONSTRUCTS
+      .map((c) => ({ name: c.name, text: data.constructData[c.id]?.strengths ?? "" }))
+      .filter((i) => i.text.trim())
+    const fallbackWeaknesses = CONSTRUCTS
+      .map((c) => ({ name: c.name, text: data.constructData[c.id]?.weaknesses ?? "" }))
+      .filter((i) => i.text.trim())
+
+    return {
+      strengths: shuffleArray(bankStrengths.length > 0 ? bankStrengths : fallbackStrengths),
+      weaknesses: shuffleArray(bankWeaknesses.length > 0 ? bankWeaknesses : fallbackWeaknesses),
+    }
+  }, [data, constructBankEntries])
 
   if (!data) {
     return (
@@ -92,7 +156,7 @@ export default function PreviewPage() {
       <div
         className="px-10 py-4"
         style={{
-          backgroundColor: s.titleBgColor ?? "#4338ca",
+          backgroundColor: s.titleBgColor ?? "#6f9f87",
           color: s.titleTextColor ?? "#ffffff",
         }}
       >
@@ -171,11 +235,11 @@ export default function PreviewPage() {
             )
 
           case "strengths": {
-            const items = CONSTRUCTS
-              .map((c) => ({ name: c.name, text: constructData[c.id]?.strengths ?? "" }))
-              .filter((i) => i.text.trim())
             const rank = getRankWithinGroup(section, "strengths")
-            const item = items[rank]
+            const item =
+              randomPools.strengths.length > 0
+                ? randomPools.strengths[rank % randomPools.strengths.length]
+                : undefined
             return (
               <div key={section.id} className="px-10 py-6" style={sp}>
                 {!item ? (
@@ -191,11 +255,11 @@ export default function PreviewPage() {
           }
 
           case "weaknesses": {
-            const items = CONSTRUCTS
-              .map((c) => ({ name: c.name, text: constructData[c.id]?.weaknesses ?? "" }))
-              .filter((i) => i.text.trim())
             const rank = getRankWithinGroup(section, "weaknesses")
-            const item = items[rank]
+            const item =
+              randomPools.weaknesses.length > 0
+                ? randomPools.weaknesses[rank % randomPools.weaknesses.length]
+                : undefined
             return (
               <div key={section.id} className="px-10 py-6" style={sp}>
                 {!item ? (

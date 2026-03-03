@@ -7,10 +7,19 @@ import { AppHeader } from "./app-header"
 import { ReportsList } from "./reports-list"
 import ReportCanvas from "@/components/report-builder/report-canvas"
 
-export function FeedbackReportsApp() {
+interface FeedbackReportsAppProps {
+  assessmentName?: string
+  onNavigateBack?: () => void
+}
+
+export function FeedbackReportsApp({
+  assessmentName = "Demo Assessment v1.7",
+  onNavigateBack,
+}: FeedbackReportsAppProps) {
   const [reports, setReports] = useState<FeedbackReport[]>(initialReports)
   const selectedTenantId = tenants[0]?.id ?? ""
   const [currentReportId, setCurrentReportId] = useState<string | null>(null)
+  const [newReportIds, setNewReportIds] = useState<Set<string>>(new Set())
 
   const currentReport = currentReportId
     ? reports.find((r) => r.id === currentReportId) ?? null
@@ -32,6 +41,7 @@ export function FeedbackReportsApp() {
       sendgridTemplateId: "",
     }
     setReports((prev) => [...prev, newReport])
+    setNewReportIds((prev) => new Set(prev).add(newReport.id))
     setCurrentReportId(newReport.id)
   }
 
@@ -69,15 +79,32 @@ export function FeedbackReportsApp() {
     <div className="flex min-h-svh flex-col">
       <AppHeader
         currentReport={currentReport}
-        onNavigateHome={() => setCurrentReportId(null)}
+        assessmentName={assessmentName}
+        onNavigateHome={() => {
+          setCurrentReportId(null)
+        }}
+        onNavigateBack={onNavigateBack}
       />
       {currentReport ? (
-        <ReportCanvas report={currentReport} onUpdateReport={handleUpdateReport} />
+        <ReportCanvas
+          report={currentReport}
+          startEmpty={newReportIds.has(currentReport.id)}
+          onHydratedFromDraft={(reportId) => {
+            setNewReportIds((prev) => {
+              if (!prev.has(reportId)) return prev
+              const next = new Set(prev)
+              next.delete(reportId)
+              return next
+            })
+          }}
+          onUpdateReport={handleUpdateReport}
+        />
       ) : (
         <ReportsList
           reports={reports}
           tenants={tenants}
           selectedTenantId={selectedTenantId}
+          assessmentName={assessmentName}
           onSelectReport={(report) => setCurrentReportId(report.id)}
           onCreateReport={handleCreateReport}
         />

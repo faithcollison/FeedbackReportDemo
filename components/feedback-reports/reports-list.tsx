@@ -18,6 +18,7 @@ interface ReportsListProps {
   reports: FeedbackReport[];
   tenants: Tenant[];
   selectedTenantId: string;
+  assessmentName: string;
   onSelectReport: (report: FeedbackReport) => void;
   onCreateReport: (
     name: string,
@@ -30,6 +31,7 @@ export function ReportsList({
   reports,
   tenants,
   selectedTenantId,
+  assessmentName,
   onSelectReport,
   onCreateReport,
 }: ReportsListProps) {
@@ -41,11 +43,11 @@ export function ReportsList({
 
   return (
     <div className="min-h-[calc(100svh-50px)] bg-[#e7e7e7]">
-      <div className="fixed left-0 right-0 top-[50px] z-40 border-b border-[#9ccbb4] bg-[#acd7c1]">
+      <div className=" left-0 right-0 top-[50px] z-40 border-b border-[#9ccbb4] bg-[#acd7c1]">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <p className="text-sm font-semibold text-[#1f2937]">
-              For assessment: Demo Assessment v1.7
+              For assessment: {assessmentName}
             </p>
           </div>
           <Button
@@ -58,7 +60,7 @@ export function ReportsList({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-6 pb-6 pt-28">
+      <div className="mx-auto w-full max-w-7xl px-6 pb-6 pt-3">
         {filteredReports.length === 0 ? (
           <Card className="border-[#d5d5d5] bg-[#ededed]">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
