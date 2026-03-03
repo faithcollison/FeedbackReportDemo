@@ -1710,14 +1710,14 @@ export default function ReportCanvas({ report, onUpdateReport }: ReportCanvasPro
         {/* ── Report Settings Tab ── */}
         <TabsContent value="settings" className="mt-4">
           <div className="flex flex-col gap-6">
-            <Card className="w-full md:w-1/2">
+            <Card className="mx-auto w-full md:w-1/2">
               <CardHeader>
                 <CardTitle>General</CardTitle>
                 <CardDescription>Basic report information.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="audience-select">Audience</Label>
+                  <Label htmlFor="audience-select">Report type</Label>
                   <Select
                     value={report.reportType}
                     onValueChange={(value) => {
@@ -1725,13 +1725,20 @@ export default function ReportCanvas({ report, onUpdateReport }: ReportCanvasPro
                     }}
                   >
                     <SelectTrigger id="audience-select">
-                      <SelectValue placeholder="Select audience" />
+                      <SelectValue placeholder="Select report type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="hiring-manager">Hiring Manager</SelectItem>
                       <SelectItem value="candidate">Candidate</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Email sending</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configure how report emails are delivered.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 rounded-md border p-3">
@@ -1775,18 +1782,19 @@ export default function ReportCanvas({ report, onUpdateReport }: ReportCanvasPro
                   If this is off, emails are sent using the default template.
                 </p>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sendgrid-template-id">SendGrid template ID</Label>
-                  <Input
-                    id="sendgrid-template-id"
-                    value={report.sendgridTemplateId}
-                    onChange={(e) => {
-                      onUpdateReport(report.id, { sendgridTemplateId: e.target.value })
-                    }}
-                    placeholder="e.g. d-1234567890abcdef1234567890abcdef"
-                    disabled={!report.useCustomEmailTemplate}
-                  />
-                </div>
+                {report.useCustomEmailTemplate && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sendgrid-template-id">SendGrid template ID</Label>
+                    <Input
+                      id="sendgrid-template-id"
+                      value={report.sendgridTemplateId}
+                      onChange={(e) => {
+                        onUpdateReport(report.id, { sendgridTemplateId: e.target.value })
+                      }}
+                      placeholder="e.g. d-1234567890abcdef1234567890abcdef"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
