@@ -11,174 +11,105 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CreateReportDialog } from "./create-report-dialog";
-import { Plus, FileText, User, Briefcase, Send } from "lucide-react";
+import { Plus, FileText, User, Briefcase } from "lucide-react";
 
 interface ReportsListProps {
   reports: FeedbackReport[];
   tenants: Tenant[];
   selectedTenantId: string;
-  onSelectTenant: (tenantId: string) => void;
   onSelectReport: (report: FeedbackReport) => void;
   onCreateReport: (
     name: string,
     tenantId: string,
     reportType: ReportType,
   ) => void;
-  onSetSendOnCompletion: (reportId: string, enabled: boolean) => void;
 }
 
 export function ReportsList({
   reports,
   tenants,
   selectedTenantId,
-  onSelectTenant,
   onSelectReport,
   onCreateReport,
-  onSetSendOnCompletion,
 }: ReportsListProps) {
   const [createOpen, setCreateOpen] = useState(false);
-  const [pendingToggle, setPendingToggle] = useState<{
-    report: FeedbackReport;
-    nextEnabled: boolean;
-    conflictingReport: FeedbackReport | null;
-  } | null>(null);
 
   const filteredReports = reports.filter(
     (r) => r.tenantId === selectedTenantId,
   );
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-muted-foreground">
-            Tenant
-          </label>
-          <Select value={selectedTenantId} onValueChange={onSelectTenant}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {tenants.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus />
-          New Report
-        </Button>
-      </div>
-      {filteredReports.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <FileText className="mb-3 size-10 text-muted-foreground" />
-            <p className="text-lg font-medium">No feedback reports yet</p>
-            <p className="text-sm text-muted-foreground">
-              Create your first report to get started.
+    <div className="min-h-[calc(100svh-50px)] bg-[#e7e7e7]">
+      <div className="fixed left-0 right-0 top-[50px] z-40 border-b border-[#9ccbb4] bg-[#acd7c1]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+          <div>
+            <p className="text-sm font-semibold text-[#1f2937]">
+              For assessment: Demo Assessment v1.7
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {filteredReports.map((report) => (
-            <Card
-              key={report.id}
-              className="cursor-pointer transition-colors hover:bg-accent/50"
-              onClick={() => onSelectReport(report)}
-            >
-              <CardHeader className="flex-row items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-md bg-muted">
-                    {report.reportType === "candidate" ? (
-                      <User className="size-4 text-muted-foreground" />
-                    ) : (
-                      <Briefcase className="size-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{report.name}</CardTitle>
-                    <CardDescription className="text-xs">
-                      Created {report.createdAt}
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    {report.reportType === "candidate"
-                      ? "Candidate"
-                      : "Hiring Manager"}
-                  </Badge>
-                  {report.reportType === "candidate" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={
-                        "h-8 gap-1 text-xs " +
-                        (report.sendOnCompletion
-                          ? "border-emerald-300 text-emerald-700"
-                          : "text-muted-foreground")
-                      }
-                      title={
-                        report.sendOnCompletion
-                          ? "Enabled: auto-send on completion"
-                          : "Disabled: auto-send on completion"
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const nextEnabled = !report.sendOnCompletion;
-                        const conflictingReport = nextEnabled
-                          ? (reports.find(
-                              (r) =>
-                                r.id !== report.id &&
-                                r.tenantId === report.tenantId &&
-                                r.name === report.name &&
-                                r.reportType !== report.reportType &&
-                                r.sendOnCompletion,
-                            ) ?? null)
-                          : null;
-                        setPendingToggle({
-                          report,
-                          nextEnabled,
-                          conflictingReport,
-                        });
-                      }}
-                    >
-                      <Send className="size-3.5" />
-                      Auto-send {report.sendOnCompletion ? "On" : "Off"}
-                    </Button>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      Auto-send not available
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
+          </div>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-[#3c3d41] text-white hover:bg-[#2f3033]"
+          >
+            <Plus />
+            New Report
+          </Button>
         </div>
-      )}
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-6 pb-6 pt-28">
+        {filteredReports.length === 0 ? (
+          <Card className="border-[#d5d5d5] bg-[#ededed]">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="mb-3 size-10 text-[#64748b]" />
+              <p className="text-lg font-medium text-[#1f2937]">
+                No feedback reports yet
+              </p>
+              <p className="text-sm text-[#64748b]">
+                Create your first report to get started.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3">
+            {filteredReports.map((report) => (
+              <Card
+                key={report.id}
+                className="cursor-pointer border-[#d5d5d5] bg-[#ededed] transition-colors hover:bg-[#e5e5e5]"
+                onClick={() => onSelectReport(report)}
+              >
+                <CardHeader className="flex-row items-center justify-between py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 items-center justify-center rounded-md bg-[#dfe7e2]">
+                      {report.reportType === "candidate" ? (
+                        <User className="size-4 text-[#355046]" />
+                      ) : (
+                        <Briefcase className="size-4 text-[#355046]" />
+                      )}
+                    </div>
+                    <div>
+                      <CardTitle className="text-base text-[#1f2937]">
+                        {report.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-[#64748b]">
+                        Created {report.createdAt}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-[#92c99b] text-[#153a2f] hover:bg-[#87bc90]">
+                      {report.reportType === "candidate"
+                        ? "Candidate"
+                        : "Hiring Manager"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       <CreateReportDialog
         open={createOpen}
@@ -187,64 +118,6 @@ export function ReportsList({
         selectedTenantId={selectedTenantId}
         onCreateReport={onCreateReport}
       />
-      <AlertDialog
-        open={pendingToggle !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingToggle(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingToggle?.nextEnabled
-                ? "Enable send on completion?"
-                : "Disable send on completion?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingToggle?.nextEnabled ? (
-                <>
-                  This will enable automatic emails to be sent with the
-                  candidate report for{" "}
-                  <span className="font-medium">
-                    {pendingToggle.report.name}
-                  </span>
-                  .
-                  {pendingToggle.conflictingReport && (
-                    <>
-                      {" "}
-                      The other report type for this assessment is currently
-                      enabled and will be turned off.
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  This will disable automatic sending for{" "}
-                  <span className="font-medium">
-                    {pendingToggle?.report.name}
-                  </span>
-                  .
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!pendingToggle) return;
-                onSetSendOnCompletion(
-                  pendingToggle.report.id,
-                  pendingToggle.nextEnabled,
-                );
-                setPendingToggle(null);
-              }}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -17,7 +17,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ currentReport, onNavigateHome }: AppHeaderProps) {
   return (
-    <header className="border-b bg-background px-6 py-4">
+    <header className="border-b border-[#9ccbb4] bg-[#8fc0a7] px-6 py-4">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -28,12 +28,12 @@ export function AppHeader({ currentReport, onNavigateHome }: AppHeaderProps) {
                   e.preventDefault()
                   onNavigateHome()
                 }}
-                className="text-base font-semibold"
+                className="text-base font-semibold text-[#1f2937]"
               >
                 Feedback Reports
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbPage className="text-base font-semibold">
+              <BreadcrumbPage className="text-base font-semibold text-[#1f2937]">
                 Feedback Reports
               </BreadcrumbPage>
             )}
@@ -42,7 +42,7 @@ export function AppHeader({ currentReport, onNavigateHome }: AppHeaderProps) {
             <>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-base">
+                <BreadcrumbPage className="text-base text-[#1f2937]">
                   {currentReport.name}
                 </BreadcrumbPage>
               </BreadcrumbItem>

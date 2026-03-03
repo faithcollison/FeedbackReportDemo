@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
@@ -36,7 +37,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
+import type { FeedbackReport, ReportType } from "@/lib/types"
 import {
   Plus,
   Trash2,
@@ -290,10 +299,14 @@ const DEFAULT_STYLE: SectionStyle = {
 // ── Main Component ─────────────────────────────────────────
 
 interface ReportCanvasProps {
-  reportId: string
+  report: FeedbackReport
+  onUpdateReport: (
+    reportId: string,
+    patch: Partial<Pick<FeedbackReport, "reportType" | "sendOnCompletion" | "useCustomEmailTemplate" | "sendgridTemplateId">>
+  ) => void
 }
 
-export default function ReportCanvas({ reportId }: ReportCanvasProps) {
+export default function ReportCanvas({ report, onUpdateReport }: ReportCanvasProps) {
   const [sections, setSections] = useState<ReportSection[]>(DEFAULT_SECTIONS)
   const [constructData, setConstructData] = useState<Record<string, ConstructData>>(buildDefaultConstructData)
   const [settings, setSettings] = useState<ReportSettings>(DEFAULT_SETTINGS)
@@ -603,7 +616,7 @@ export default function ReportCanvas({ reportId }: ReportCanvasProps) {
       const parsed = JSON.parse(raw)
       if (!Array.isArray(parsed)) return
 
-      const draft = parsed.find((item) => item?.reportId === reportId) as SavedReportDraft | undefined
+      const draft = parsed.find((item) => item?.reportId === report.id) as SavedReportDraft | undefined
       if (!draft) return
 
       if (Array.isArray(draft.sections)) {
@@ -630,7 +643,7 @@ export default function ReportCanvas({ reportId }: ReportCanvasProps) {
       const drafts: SavedReportDraft[] = Array.isArray(existing) ? existing : []
 
       const nextDraft: SavedReportDraft = {
-        reportId,
+        reportId: report.id,
         savedAt: new Date().toISOString(),
         sections,
         sectionStyles,
@@ -638,7 +651,7 @@ export default function ReportCanvas({ reportId }: ReportCanvasProps) {
         settings,
       }
 
-      const filtered = drafts.filter((draft) => draft.reportId !== reportId)
+      const filtered = drafts.filter((draft) => draft.reportId !== report.id)
       const next = [nextDraft, ...filtered]
       localStorage.setItem(REPORT_DRAFT_STORAGE_KEY, JSON.stringify(next))
 
@@ -735,7 +748,7 @@ export default function ReportCanvas({ reportId }: ReportCanvasProps) {
 
   useEffect(() => {
     loadSavedReportDraft()
-  }, [reportId])
+  }, [report.id])
 
   function openPreview() {
     localStorage.setItem(
@@ -1696,28 +1709,82 @@ export default function ReportCanvas({ reportId }: ReportCanvasProps) {
 
         {/* ── Report Settings Tab ── */}
         <TabsContent value="settings" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+          <div className="flex flex-col gap-6">
+            <Card className="w-full md:w-1/2">
               <CardHeader>
                 <CardTitle>General</CardTitle>
                 <CardDescription>Basic report information.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4" />
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Save as Template</CardTitle>
-                <CardDescription>Save this report layout as a reusable template.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="templateName">Template Name</Label>
+                  <Label htmlFor="audience-select">Audience</Label>
+                  <Select
+                    value={report.reportType}
+                    onValueChange={(value) => {
+                      onUpdateReport(report.id, { reportType: value as ReportType })
+                    }}
+                  >
+                    <SelectTrigger id="audience-select">
+                      <SelectValue placeholder="Select audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hiring-manager">Hiring Manager</SelectItem>
+                      <SelectItem value="candidate">Candidate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="auto-send-toggle">Auto send on completion</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Automatically email this report when the assessment is completed.
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-send-toggle"
+                    checked={report.sendOnCompletion}
+                    onCheckedChange={(checked) => {
+                      onUpdateReport(report.id, { sendOnCompletion: checked })
+                    }}
+                    disabled={report.reportType !== "candidate"}
+                  />
+                </div>
+                {report.reportType !== "candidate" && (
+                  <p className="text-xs text-muted-foreground">
+                    Auto-send is only available for candidate reports.
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="custom-template-toggle">Use custom email template</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Send with a specific SendGrid dynamic template.
+                    </p>
+                  </div>
+                  <Switch
+                    id="custom-template-toggle"
+                    checked={report.useCustomEmailTemplate}
+                    onCheckedChange={(checked) => {
+                      onUpdateReport(report.id, { useCustomEmailTemplate: checked })
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  If this is off, emails are sent using the default template.
+                </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sendgrid-template-id">SendGrid template ID</Label>
                   <Input
-                    id="templateName"
-                    value={settings.templateName}
-                    onChange={(e) => updateSetting("templateName", e.target.value)}
-                    placeholder="e.g. Standard Performance Review"
+                    id="sendgrid-template-id"
+                    value={report.sendgridTemplateId}
+                    onChange={(e) => {
+                      onUpdateReport(report.id, { sendgridTemplateId: e.target.value })
+                    }}
+                    placeholder="e.g. d-1234567890abcdef1234567890abcdef"
+                    disabled={!report.useCustomEmailTemplate}
                   />
                 </div>
               </CardContent>

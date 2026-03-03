@@ -1,8 +1,6 @@
-import type { Tenant, FeedbackReport } from "./types"
+import type { Tenant, FeedbackReport } from "./types";
 
-export const tenants: Tenant[] = [
-  { id: "t1", name: "Acme Corp" },
-]
+export const tenants: Tenant[] = [{ id: "t1", name: "Neurosight" }];
 
 export const initialReports: FeedbackReport[] = [
   {
@@ -12,6 +10,8 @@ export const initialReports: FeedbackReport[] = [
     reportType: "candidate",
     createdAt: "2025-11-15",
     sendOnCompletion: false,
+    useCustomEmailTemplate: false,
+    sendgridTemplateId: "",
   },
   {
     id: "r2",
@@ -20,6 +20,8 @@ export const initialReports: FeedbackReport[] = [
     reportType: "hiring-manager",
     createdAt: "2025-12-03",
     sendOnCompletion: false,
+    useCustomEmailTemplate: false,
+    sendgridTemplateId: "",
   },
   {
     id: "r3",
@@ -28,5 +30,7 @@ export const initialReports: FeedbackReport[] = [
     reportType: "candidate",
     createdAt: "2026-01-10",
     sendOnCompletion: false,
+    useCustomEmailTemplate: false,
+    sendgridTemplateId: "",
   },
-]
+];

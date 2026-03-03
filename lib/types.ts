@@ -12,4 +12,6 @@ export interface FeedbackReport {
   reportType: ReportType
   createdAt: string
   sendOnCompletion: boolean
+  useCustomEmailTemplate: boolean
+  sendgridTemplateId: string
 }
