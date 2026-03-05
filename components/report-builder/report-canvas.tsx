@@ -579,18 +579,18 @@ export default function ReportCanvas({
   const [openById, setOpenById] = useState<Record<string, boolean>>(
     startEmpty
       ? {
-          "header-default": true,
-          "intro-1": true,
-          "strength-default": true,
-          "closing-1": true,
+          "header-default": false,
+          "intro-1": false,
+          "strength-default": false,
+          "closing-1": false,
         }
       : {
-          "header-default": true,
-          "intro-1": true,
-          "intro-2": true,
-          "strength-default": true,
-          "development-default": true,
-          "closing-1": true,
+          "header-default": false,
+          "intro-1": false,
+          "intro-2": false,
+          "strength-default": false,
+          "development-default": false,
+          "closing-1": false,
         },
   );
 
@@ -681,7 +681,9 @@ export default function ReportCanvas({
 
       const rebuilt = buildSectionsFromTemplate(selected, constructBankEntries);
       setSections(rebuilt);
-      setOpenById(Object.fromEntries(rebuilt.map((section) => [section.id, true])));
+      setOpenById(
+        Object.fromEntries(rebuilt.map((section) => [section.id, false])),
+      );
       setEditingLabelId(null);
     };
 
@@ -858,7 +860,7 @@ export default function ReportCanvas({
     };
 
     setSections((prev) => [...prev, next]);
-    setOpenById((prev) => ({ ...prev, [id]: true }));
+    setOpenById((prev) => ({ ...prev, [id]: false }));
   }
 
   function removeSection(sectionId: string) {
@@ -871,6 +873,7 @@ export default function ReportCanvas({
   }
 
   function ensureConstructSection(role: "strength" | "development") {
+    const newSectionId = `${role}-${crypto.randomUUID()}`;
     setSections((prev) => {
       if (
         prev.some(
@@ -879,11 +882,17 @@ export default function ReportCanvas({
       ) {
         return prev;
       }
-      return [...prev, createConstructSection(constructBankEntries, role)];
+      return [
+        ...prev,
+        {
+          ...createConstructSection(constructBankEntries, role),
+          id: newSectionId,
+        },
+      ];
     });
     setOpenById((prev) => ({
       ...prev,
-      [role === "strength" ? "strength-default" : "development-default"]: true,
+      [newSectionId]: false,
     }));
   }
 
@@ -949,38 +958,72 @@ export default function ReportCanvas({
   return (
     <main className="min-h-[calc(100svh-56px)] bg-[#dbe5e1] px-4 py-5">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-3 flex justify-start">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-[#cfd6dc] bg-transparent"
-              >
-                Import Template
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {templates.length === 0 ? (
-                <DropdownMenuItem disabled>No templates found</DropdownMenuItem>
-              ) : (
-                templates.map((template) => (
-                  <DropdownMenuItem
-                    key={template.id}
-                    onClick={() => {
-                      window.dispatchEvent(
-                        new CustomEvent("report-builder:import-template", {
-                          detail: { templateId: template.id },
-                        }),
-                      );
-                    }}
-                  >
-                    {template.name}
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="mb-3">
+          <p className="mb-2 text-xs font-semibold tracking-wide text-[#475569]">
+            Section Actions
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-[#cfd6dc] bg-transparent"
+                >
+                  Import Template
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {templates.length === 0 ? (
+                  <DropdownMenuItem disabled>No templates found</DropdownMenuItem>
+                ) : (
+                  templates.map((template) => (
+                    <DropdownMenuItem
+                      key={template.id}
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("report-builder:import-template", {
+                            detail: { templateId: template.id },
+                          }),
+                        );
+                      }}
+                    >
+                      {template.name}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
+              onClick={addCustomSection}
+            >
+              <Plus className="size-4" />
+              Add Free Text
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
+              onClick={() => ensureConstructSection("strength")}
+              disabled={hasStrengthSection}
+            >
+              <Plus className="size-4" />
+              Add Strength
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
+              onClick={() => ensureConstructSection("development")}
+              disabled={hasDevelopmentSection}
+            >
+              <Plus className="size-4" />
+              Add Development
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-0">
@@ -990,29 +1033,17 @@ export default function ReportCanvas({
               return (
                 <div key={section.id}>
                   <section className="mb-3 overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
-                    <div className="flex items-center border-b border-[#dde2e6] px-2 py-1.5">
-                      <button
-                        type="button"
-                        draggable
-                        onDragStart={() =>
-                          setDragPayload({
-                            kind: "move",
-                            sectionId: section.id,
-                          })
-                        }
-                        onDragEnd={() => {
-                          setDragPayload(null);
-                          setActiveDropIndex(null);
-                        }}
-                        className="mr-1 rounded p-1 text-[#6b7280] hover:bg-[#e8edf1]"
-                        title="Drag to reorder"
+                    <div className="flex min-h-12 items-center border-b border-[#dde2e6] px-2 py-1.5">
+                      <span
+                        className="mr-1 inline-flex rounded p-1 text-[#9ca3af]"
+                        title="Header is fixed at the top"
                       >
                         <GripVertical className="size-4" />
-                      </button>
+                      </span>
                       <button
                         type="button"
                         onClick={() => toggleOpen(section.id)}
-                        className="flex flex-1 items-center justify-between px-1 py-1 text-left"
+                        className="flex h-10 flex-1 items-center justify-between px-1 py-1 text-left"
                       >
                         <h2 className="text-lg font-semibold text-[#1f2937]">
                           Header
@@ -1420,13 +1451,22 @@ export default function ReportCanvas({
             return (
               <div key={section.id}>
                 <section className="mb-3 overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
-                    <div className="flex items-center border-b border-[#dde2e6] px-2 py-1.5">
-                      <span
-                        className="mr-1 inline-flex rounded p-1 text-[#9ca3af]"
-                        title="Header is fixed at the top"
-                      >
+                  <div className="flex items-center border-b border-[#dde2e6] px-2 py-1.5">
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={() =>
+                        setDragPayload({ kind: "move", sectionId: section.id })
+                      }
+                      onDragEnd={() => {
+                        setDragPayload(null);
+                        setActiveDropIndex(null);
+                      }}
+                      className="mr-1 rounded p-1 text-[#6b7280] hover:bg-[#e8edf1]"
+                      title="Drag to reorder"
+                    >
                         <GripVertical className="size-4" />
-                      </span>
+                    </button>
                     <div className="flex flex-1 items-center gap-2 px-1 py-1">
                       {editingLabelId === section.id ? (
                         <Input
@@ -1585,39 +1625,6 @@ export default function ReportCanvas({
             );
           })}
         </div>
-        <section className="mt-4 rounded-lg border border-dashed border-[#c4cdd5] bg-[#f7f8f9] p-4">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
-              onClick={addCustomSection}
-            >
-              <Plus className="size-4" />
-              Add Free Text
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
-              onClick={() => ensureConstructSection("strength")}
-              disabled={hasStrengthSection}
-            >
-              <Plus className="size-4" />
-              Add Strength
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 gap-2 border-[#cfd6dc] bg-transparent"
-              onClick={() => ensureConstructSection("development")}
-              disabled={hasDevelopmentSection}
-            >
-              <Plus className="size-4" />
-              Add Development
-            </Button>
-          </div>
-        </section>
       </div>
     </main>
   );
