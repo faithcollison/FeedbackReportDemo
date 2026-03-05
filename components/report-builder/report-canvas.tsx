@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, GripVertical, ImageIcon, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -44,6 +50,8 @@ interface HeaderSection {
   type: "header";
   title: string;
   bgColor: string;
+  logoUrl?: string;
+  logoName?: string;
 }
 
 interface TextSection {
@@ -83,6 +91,8 @@ interface PreviewSectionStyle {
   titleText?: string;
   titleBgColor?: string;
   numberToShow?: number;
+  logoUrl?: string;
+  logoName?: string;
 }
 
 interface PreviewDataPayload {
@@ -102,6 +112,8 @@ interface SavedTemplateSection {
   introText?: string;
   selectedConstructId?: string;
   numberToShow?: "1" | "2" | "3";
+  logoUrl?: string;
+  logoName?: string;
 }
 
 interface SavedTemplate {
@@ -109,6 +121,11 @@ interface SavedTemplate {
   name: string;
   createdAt: string;
   sections: SavedTemplateSection[];
+}
+
+interface TemplateListItem {
+  id: string;
+  name: string;
 }
 
 type BuilderSection = HeaderSection | TextSection | ConstructSection;
@@ -231,6 +248,8 @@ function createInitialSections(
       type: "header",
       title: "Feedback report for Candidate Name",
       bgColor: "#457b58",
+      logoUrl: "",
+      logoName: "",
     },
     {
       id: "intro-1",
@@ -284,6 +303,8 @@ function createBlankInitialSections(
       type: "header",
       title: "",
       bgColor: "#457b58",
+      logoUrl: "",
+      logoName: "",
     },
     {
       id: "intro-1",
@@ -350,6 +371,8 @@ function buildPreviewPayload(sections: BuilderSection[]): PreviewDataPayload {
       sectionStyles[section.id] = {
         titleText: section.title,
         titleBgColor: section.bgColor,
+        logoUrl: section.logoUrl,
+        logoName: section.logoName,
       };
       return;
     }
@@ -403,7 +426,12 @@ function extractTemplateSections(
 ): SavedTemplateSection[] {
   return sections.map((section) => {
     if (section.type === "header") {
-      return { type: "header", title: section.title };
+      return {
+        type: "header",
+        title: section.title,
+        logoUrl: section.logoUrl,
+        logoName: section.logoName,
+      };
     }
 
     if (section.type === "text") {
@@ -441,6 +469,8 @@ function buildSectionsFromTemplate(
         type: "header",
         title: saved.title || "Feedback report for Candidate Name",
         bgColor: "#457b58",
+        logoUrl: saved.logoUrl || "",
+        logoName: saved.logoName || "",
       });
       return;
     }
@@ -567,6 +597,7 @@ export default function ReportCanvas({
   const [dragPayload, setDragPayload] = useState<DragPayload | null>(null);
   const [activeDropIndex, setActiveDropIndex] = useState<number | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<TemplateListItem[]>([]);
 
   void onUpdateReport;
 
@@ -669,6 +700,42 @@ export default function ReportCanvas({
   }, [constructBankEntries, sections]);
 
   useEffect(() => {
+    const loadTemplates = () => {
+      const raw = localStorage.getItem(TEMPLATE_STORAGE_KEY);
+      if (!raw) {
+        setTemplates([]);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+          setTemplates([]);
+          return;
+        }
+
+        const valid = parsed.filter(
+          (item): item is TemplateListItem =>
+            !!item &&
+            typeof item.id === "string" &&
+            typeof item.name === "string",
+        );
+        setTemplates(valid);
+      } catch {
+        setTemplates([]);
+      }
+    };
+
+    loadTemplates();
+    window.addEventListener("report-builder:templates-updated", loadTemplates);
+    window.addEventListener("storage", loadTemplates);
+    return () => {
+      window.removeEventListener("report-builder:templates-updated", loadTemplates);
+      window.removeEventListener("storage", loadTemplates);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!startEmpty && onHydratedFromDraft) {
       onHydratedFromDraft(report.id);
     }
@@ -761,6 +828,20 @@ export default function ReportCanvas({
     );
   }
 
+  function handleHeaderLogoUpload(sectionId: string, file?: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      updateSection(sectionId, (current) =>
+        current.type === "header"
+          ? { ...current, logoUrl: result, logoName: file.name }
+          : current,
+      );
+    };
+    reader.readAsDataURL(file);
+  }
+
   function addCustomSection() {
     const id = crypto.randomUUID();
     const nextCustomNumber = customCount + 1;
@@ -810,12 +891,15 @@ export default function ReportCanvas({
     if (!dragPayload) return;
 
     setSections((prev) => {
+      const headerIndex = prev.findIndex((section) => section.type === "header");
+      const minDropIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
       const sourceIndex = prev.findIndex(
         (section) => section.id === dragPayload.sectionId,
       );
       if (sourceIndex < 0) return prev;
+      if (prev[sourceIndex]?.type === "header") return prev;
 
-      const boundedDrop = Math.max(0, Math.min(index, prev.length));
+      const boundedDrop = Math.max(minDropIndex, Math.min(index, prev.length));
       const [moved] = prev.slice(sourceIndex, sourceIndex + 1);
       const without = prev.filter(
         (section) => section.id !== dragPayload.sectionId,
@@ -834,19 +918,29 @@ export default function ReportCanvas({
   }
 
   function renderDropZone(index: number) {
+    const headerIndex = sections.findIndex((section) => section.type === "header");
+    const minDropIndex = headerIndex >= 0 ? headerIndex + 1 : 0;
+    const disabled = index < minDropIndex;
     return (
       <div
         key={`drop-${index}`}
         onDragOver={(event) => {
+          if (disabled) return;
           event.preventDefault();
           setActiveDropIndex(index);
         }}
         onDragLeave={() => {
+          if (disabled) return;
           if (activeDropIndex === index) setActiveDropIndex(null);
         }}
-        onDrop={() => onDropAt(index)}
+        onDrop={() => {
+          if (disabled) return;
+          onDropAt(index);
+        }}
         className={`rounded-md transition-all ${
-          dragPayload ? "my-1 h-6 border border-dashed border-[#c8d2db]" : "h-0"
+          dragPayload && !disabled
+            ? "my-1 h-6 border border-dashed border-[#c8d2db]"
+            : "h-0"
         } ${activeDropIndex === index ? "bg-[#d8f0e3]" : "bg-transparent"}`}
       />
     );
@@ -855,6 +949,40 @@ export default function ReportCanvas({
   return (
     <main className="min-h-[calc(100svh-56px)] bg-[#dbe5e1] px-4 py-5">
       <div className="mx-auto max-w-3xl">
+        <div className="mb-3 flex justify-start">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 border-[#cfd6dc] bg-transparent"
+              >
+                Import Template
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {templates.length === 0 ? (
+                <DropdownMenuItem disabled>No templates found</DropdownMenuItem>
+              ) : (
+                templates.map((template) => (
+                  <DropdownMenuItem
+                    key={template.id}
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("report-builder:import-template", {
+                          detail: { templateId: template.id },
+                        }),
+                      );
+                    }}
+                  >
+                    {template.name}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="space-y-0">
           {renderDropZone(0)}
           {sections.map((section, index) => {
@@ -926,12 +1054,83 @@ export default function ReportCanvas({
                             className="h-10 border-[#cfd6dc] bg-white text-sm"
                           />
                         </div>
-                        <div
-                          className="rounded-sm px-3 py-2 text-sm font-semibold text-white"
-                          style={{ backgroundColor: section.bgColor }}
-                        >
-                          {section.title ||
-                            "Feedback report for Candidate Name"}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <ImageIcon className="size-4 text-[#6b7280]" />
+                            <span className="text-xs font-semibold text-[#374151]">
+                              Header Image
+                            </span>
+                            <input
+                              id={`header-image-${section.id}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(event) =>
+                                handleHeaderLogoUpload(
+                                  section.id,
+                                  event.target.files?.[0] ?? null,
+                                )
+                              }
+                              className="hidden"
+                            />
+                            <span className="max-w-[220px] truncate text-xs text-[#475569]">
+                              {section.logoName?.trim() ||
+                                (section.logoUrl?.trim()
+                                  ? "Image selected"
+                                  : "No image selected")}
+                            </span>
+                            {section.logoUrl?.trim() && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-7 w-7 border-[#cfd6dc] bg-transparent p-0 text-[#b91c1c]"
+                                onClick={() =>
+                                  updateSection(section.id, (current) =>
+                                    current.type === "header"
+                                      ? { ...current, logoUrl: "", logoName: "" }
+                                      : current,
+                                  )
+                                }
+                                title="Clear image"
+                                aria-label="Clear image"
+                              >
+                                <X className="size-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="ml-auto h-10 border-[#cfd6dc] bg-transparent text-xs"
+                              onClick={() => {
+                                const input = document.getElementById(
+                                  `header-image-${section.id}`,
+                                ) as HTMLInputElement | null;
+                                input?.click();
+                              }}
+                            >
+                              Choose Image
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-xs font-semibold text-[#374151]">
+                            Preview
+                          </p>
+                          <div
+                            className="flex items-center justify-between gap-3 rounded-sm px-3 py-2 text-sm font-semibold text-white"
+                            style={{ backgroundColor: section.bgColor }}
+                          >
+                            <span>
+                              {section.title ||
+                                "Feedback report for Candidate Name"}
+                            </span>
+                            {section.logoUrl?.trim() && (
+                              <img
+                                src={section.logoUrl}
+                                alt="Header thumbnail"
+                                className="h-10 max-w-[120px] rounded bg-white/15 p-1 object-contain"
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1090,7 +1289,7 @@ export default function ReportCanvas({
                               ariaLabel="Construct intro background hex color"
                             />
                           </div>
-                          <Input
+                          <Textarea
                             value={section.introText}
                             onChange={(event) =>
                               updateSection(section.id, (current) =>
@@ -1103,7 +1302,7 @@ export default function ReportCanvas({
                               )
                             }
                             style={{ backgroundColor: section.introBgColor }}
-                            className="h-10 border-[#cfd6dc] text-sm"
+                            className="min-h-24 border-[#cfd6dc] text-sm"
                           />
                         </div>
 
@@ -1221,22 +1420,13 @@ export default function ReportCanvas({
             return (
               <div key={section.id}>
                 <section className="mb-3 overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
-                  <div className="flex items-center border-b border-[#dde2e6] px-2 py-1.5">
-                    <button
-                      type="button"
-                      draggable
-                      onDragStart={() =>
-                        setDragPayload({ kind: "move", sectionId: section.id })
-                      }
-                      onDragEnd={() => {
-                        setDragPayload(null);
-                        setActiveDropIndex(null);
-                      }}
-                      className="mr-1 rounded p-1 text-[#6b7280] hover:bg-[#e8edf1]"
-                      title="Drag to reorder"
-                    >
-                      <GripVertical className="size-4" />
-                    </button>
+                    <div className="flex items-center border-b border-[#dde2e6] px-2 py-1.5">
+                      <span
+                        className="mr-1 inline-flex rounded p-1 text-[#9ca3af]"
+                        title="Header is fixed at the top"
+                      >
+                        <GripVertical className="size-4" />
+                      </span>
                     <div className="flex flex-1 items-center gap-2 px-1 py-1">
                       {editingLabelId === section.id ? (
                         <Input

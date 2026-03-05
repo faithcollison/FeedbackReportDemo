@@ -13,6 +13,7 @@ interface SectionStyle {
   titleText?: string
   titleBgColor?: string
   numberToShow?: number
+  logoUrl?: string
 }
 
 interface ConstructData {
@@ -138,6 +139,7 @@ export default function PreviewPage() {
       sections,
       title: normalizeTitle(headerStyle?.titleText || "Feedback report for Candidate Name"),
       titleColor: headerStyle?.titleBgColor || "#457b58",
+      logoUrl: headerStyle?.logoUrl || "",
       styles,
       strengthsGroup,
       strengthsStyle,
@@ -160,8 +162,19 @@ export default function PreviewPage() {
     <div className="min-h-screen bg-[#e9efec] py-8">
       <article className="mx-auto w-full max-w-4xl overflow-hidden rounded border border-[#cfd8d3] bg-white shadow-sm">
         <header className="px-10 pb-10 pt-12" style={{ backgroundColor: derived.titleColor, color: "#ffffff" }}>
-          <p className="text-xs opacity-90">For assessment: Demo Assessment v1.7</p>
-          <h1 className="mt-3 text-4xl font-light leading-tight">{derived.title}</h1>
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <p className="text-xs opacity-90">For assessment: Demo Assessment v1.7</p>
+              <h1 className="mt-3 text-4xl font-light leading-tight">{derived.title}</h1>
+            </div>
+            {derived.logoUrl?.trim() && (
+              <img
+                src={derived.logoUrl}
+                alt="Header logo"
+                className="max-h-20 max-w-[220px] rounded bg-white/15 p-1 object-contain"
+              />
+            )}
+          </div>
         </header>
 
         <main className="px-10 py-8">
