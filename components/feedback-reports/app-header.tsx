@@ -2,10 +2,10 @@
 
 import type { FeedbackReport } from "@/lib/types"
 import { Button } from "@/components/ui/button"
+import { Eye, Save } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -24,77 +24,56 @@ export function AppHeader({
   onNavigateHome,
   onNavigateBack,
 }: AppHeaderProps) {
+  if (currentReport) {
+    return (
+      <header className="border-b border-[#9ccbb4] bg-[#8fc0a7] px-4 py-2">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3">
+          <p className="text-sm text-[#2b3b39]">For assessment: {assessmentName}</p>
+          <div className="flex items-center gap-2">
+            <Button className="h-8 border border-[#7fa98f] bg-white px-3 text-xs text-[#30443f] hover:bg-[#f4f8f6]">
+              <Eye className="mr-1.5 size-3.5" />
+              Preview Report
+            </Button>
+            <Button className="h-8 border border-[#3f6d54] bg-[#4f7f64] px-3 text-xs text-white hover:bg-[#456f58]">
+              <Save className="mr-1.5 size-3.5" />
+              Save Report Template
+            </Button>
+            {onNavigateBack && (
+              <Button
+                variant="outline"
+                className="h-8 border-[#3f6d54] bg-[#5b876f] px-3 text-xs text-white hover:bg-[#4f7b63]"
+                onClick={onNavigateBack}
+              >
+                Back
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <header className="border-b border-[#9ccbb4] bg-[#8fc0a7] px-6 py-4">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
         <Breadcrumb>
           <BreadcrumbList>
-            {currentReport && onNavigateBack && (
-              <>
-                <BreadcrumbItem>
-                  <BreadcrumbLink
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      onNavigateBack()
-                    }}
-                    className="text-base font-semibold text-[#1f2937]"
-                  >
-                    Assessment Management
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </>
-            )}
             <BreadcrumbItem>
-              {currentReport ? (
-                <BreadcrumbLink
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    onNavigateHome()
-                  }}
-                  className="text-base font-semibold text-[#1f2937]"
-                >
-                  Feedback Reports
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbPage className="text-base font-semibold text-[#1f2937]">
-                  Feedback Reports
-                </BreadcrumbPage>
-              )}
+              <BreadcrumbPage className="text-base font-semibold text-[#1f2937]">Feedback Reports</BreadcrumbPage>
             </BreadcrumbItem>
-            {currentReport && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-base text-[#1f2937]">
-                    {currentReport.name}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
-            {!currentReport && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-base text-[#1f2937]">
-                    {assessmentName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="text-base text-[#1f2937]">{assessmentName}</BreadcrumbPage>
+            </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        {currentReport && onNavigateBack && (
-          <Button
-            variant="outline"
-            className="h-9 rounded-full border-0 bg-[#3c3d41] px-5 text-sm text-white hover:bg-[#2f3033] hover:text-white"
-            onClick={onNavigateBack}
-          >
-            Back
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          className="h-9 rounded-full border-0 bg-[#3c3d41] px-5 text-sm text-white hover:bg-[#2f3033] hover:text-white"
+          onClick={onNavigateHome}
+        >
+          Manage Reports
+        </Button>
       </div>
     </header>
   )
