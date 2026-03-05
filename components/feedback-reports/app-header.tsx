@@ -30,11 +30,22 @@ export function AppHeader({
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3">
           <p className="text-sm text-[#2b3b39]">For assessment: {assessmentName}</p>
           <div className="flex items-center gap-2">
-            <Button className="h-8 border border-[#7fa98f] bg-white px-3 text-xs text-[#30443f] hover:bg-[#f4f8f6]">
+            <Button
+              className="h-8 border border-[#7fa98f] bg-white px-3 text-xs text-[#30443f] hover:bg-[#f4f8f6]"
+              onClick={() => {
+                window.dispatchEvent(new Event("report-builder:open-preview"))
+              }}
+            >
               <Eye className="mr-1.5 size-3.5" />
               Preview Report
             </Button>
-            <Button className="h-8 border border-[#3f6d54] bg-[#4f7f64] px-3 text-xs text-white hover:bg-[#456f58]">
+
+            <Button
+              className="h-8 border border-[#3f6d54] bg-[#4f7f64] px-3 text-xs text-white hover:bg-[#456f58]"
+              onClick={() => {
+                window.dispatchEvent(new Event("report-builder:save-template"))
+              }}
+            >
               <Save className="mr-1.5 size-3.5" />
               Save Report Template
             </Button>
