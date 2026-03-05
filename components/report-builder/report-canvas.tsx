@@ -72,38 +72,100 @@ interface ConstructSection {
   contentBgColor: string;
 }
 
+interface PreviewReportSection {
+  id: string;
+  type: string;
+  label: string;
+}
+
+interface PreviewSectionStyle {
+  content?: string;
+  titleText?: string;
+  titleBgColor?: string;
+  numberToShow?: number;
+}
+
+interface PreviewDataPayload {
+  sections: PreviewReportSection[];
+  constructData: Record<string, { strengths: string; weaknesses: string }>;
+  settings: { templateName: string };
+  sectionStyles: Record<string, PreviewSectionStyle>;
+}
+
+interface SavedTemplateSection {
+  type: "header" | "text" | "construct";
+  role?: "intro" | "closing" | "custom" | "strength" | "development";
+  label?: string;
+  title?: string;
+  showTitle?: boolean;
+  content?: string;
+  introText?: string;
+  selectedConstructId?: string;
+  numberToShow?: "1" | "2" | "3";
+}
+
+interface SavedTemplate {
+  id: string;
+  name: string;
+  createdAt: string;
+  sections: SavedTemplateSection[];
+}
+
 type BuilderSection = HeaderSection | TextSection | ConstructSection;
 
 type DragPayload = { kind: "move"; sectionId: string };
 
 const CONSTRUCT_BANK_STORAGE_KEY = "report-builder-construct-bank";
+const PREVIEW_STORAGE_KEY = "report-preview-data";
+const TEMPLATE_STORAGE_KEY = "report-builder-templates";
 const DEFAULT_TITLE_BG = "#f7f8f9";
 const DEFAULT_TEXT_BG = "#ffffff";
 
 const FALLBACK_ENTRIES: ConstructBankEntry[] = [
   {
-    id: "assertiveness",
-    name: "Assertiveness",
-    strengths:
-      "Demonstrates strong assertiveness in professional settings, with confidence in communicating ideas and decisions.",
-    weaknesses:
-      "Could improve confidence when challenging unclear priorities, especially in fast-paced team settings.",
-  },
-  {
     id: "collaboration",
     name: "Collaboration",
-    strengths:
-      "Works effectively with others and contributes to a positive and productive team dynamic.",
+    strengths: `Your responses indicate you enjoy working in a team and can effectively collaborate with others to deliver results. Your ability to engage with a wide range of people and leverage their diverse skill sets is a strength that can lead to successful project outcomes and a positive working environment.
+
+Taking this strength further...
+
+* Enhance your communication skills. Clear and open communication is the foundation of effective collaboration. Focus on refining your ability to convey ideas, listen actively, and encourage others to share their thoughts.
+* Embrace diversity. Seek to collaborate with people you would not usually work with. By actively seeking out and embracing diverse viewpoints, you can drive innovation and find more comprehensive solutions to challenges.
+* Invest in relationship building. Take time to connect with your colleagues outside of immediate project needs. Understanding their working styles and motivations can greatly enhance your collaboration.
+
+Top tip: Your collaboration skills are a great asset but balancing them with individual responsibility is crucial. While teamwork is important, remember to also take ownership of your tasks and contribute your best work to the team. This approach will boost project success and highlight you as a reliable and valued team member.`,
     weaknesses:
-      "Would benefit from more proactive stakeholder updates to improve cross-team alignment.",
+      "",
   },
   {
-    id: "analysis",
-    name: "Analytical Mindset",
-    strengths:
-      "Approaches complex tasks with structured thinking and clear logic.",
+    id: "safety-security",
+    name: "Safety & Security Mindset",
+    strengths: `Your results show that you understand the importance of safety and security rules and are committed to consistently following them. This strength is critical in our industry, where safety is paramount to the success of projects and the well-being of all involved.
+
+Taking this strength further...
+
+* Be a safety advocate. Actively promote safe practices amongst your peers or teammates, both in and outside the workplace. For example, remind others of safety protocols during projects or even how to stay safe when driving, or online.
+* Expand your safety knowledge. As you enter the workplace, seek to deepen your understanding of safety rules and best practices. Reflect on how they are applied every day and the positive impact they have on people and the business.
+* Proactively identify risks. Use your safety mindset to anticipate risks before they become issues, then report any hazards appropriately. By doing so, you can help prevent accidents and ensure that safety standards are consistently met.
+
+Top tip: Remember that others may need more help seeing the value in safety rules. By relating them to everyday situations, you can encourage your peers to understand that these guidelines are not just regulations, but essential practices that protect everyone’s well-being. By making safety relatable and fostering a positive attitude towards these rules, you can contribute to a culture where everyone willingly adopts safe practices.`,
     weaknesses:
-      "Could strengthen data-validation habits before reaching final conclusions.",
+      "",
+  },
+  {
+    id: "initiative",
+    name: "Initiative",
+    strengths:
+      "",
+    weaknesses: `Your responses suggest that taking initiative in uncertain situations may not always come naturally to you. Developing this skill is important, as being proactive and resourceful is key to driving projects forward and overcoming challenges. By improving your ability to take initiative, you'll gain confidence in making decisions and contribute more meaningfully to your team's success.
+
+To further develop in this area...
+
+* Start small. Begin by identifying areas in your current tasks where you can take the lead. Even small steps, like suggesting a new approach on a team project or volunteering for a task, can help build your confidence in taking initiative.
+* Observe and learn. Pay attention to how others around you take initiative, especially in uncertain situations. Notice their thought processes and actions, and consider how you can apply similar strategies in your own work.
+* Step outside your comfort zone. Volunteer for tasks that are slightly beyond your current expertise or take on responsibilities that require solving unfamiliar problems. These experiences will enhance your initiative by exposing you to new challenges.
+
+Development tip: When faced with a new or uncertain situation, pause and think about what steps you can take to move forward. Even if the next step isn’t clear, taking action -no matter how small - can help you build momentum and develop your ability to think on your feet. Regularly practising this will enhance your confidence and ability to take initiative in any situation.`,
   },
 ];
 
@@ -144,6 +206,25 @@ function createConstructSection(
 function createInitialSections(
   entries: ConstructBankEntry[],
 ): BuilderSection[] {
+  const strengthsSection: ConstructSection = {
+    ...createConstructSection(entries, "strength"),
+    id: "strength-default",
+    title: "Your top two strengths",
+    introText:
+      "Your top two strengths are likely to be things that you do well and tend to enjoy. When you can use these strengths in your daily tasks, it is likely that you will be more productive and engaged with what you are doing.\n\nAs you consider your responsibilities, role and daily activities, think about how you might find ways to play to these strengths to further enhance your performance and mental wellbeing.",
+    selectedConstructId: entries.find((e) => e.id === "collaboration")?.id ?? entries[0]?.id ?? "",
+    numberToShow: "2",
+  };
+
+  const developmentSection: ConstructSection = {
+    ...createConstructSection(entries, "development"),
+    id: "development-default",
+    title: "Your top development area",
+    introText: "",
+    selectedConstructId: entries.find((e) => e.id === "initiative")?.id ?? entries[0]?.id ?? "",
+    numberToShow: "1",
+  };
+
   return [
     {
       id: "header-default",
@@ -155,21 +236,82 @@ function createInitialSections(
       id: "intro-1",
       type: "text",
       role: "intro",
-      label: "Intro",
-      title: "Intro",
+      label: "How the assessment works",
+      title: "How the assessment works",
       showTitle: true,
+      content:
+        "You completed an online assessment which measures the strengths that enable high performance at Amey.\n\nDuring the assessment, your responses were carefully scored using a methodology based on reputable, peer-reviewed science, with robust evidence supporting its effectiveness. The scoring algorithms promote diversity and neurodiversity by adapting to every candidate to account for individual differences in processing information and making decisions.",
+      titleBgColor: "#6f9f87",
+      contentBgColor: DEFAULT_TEXT_BG,
+    },
+    {
+      id: "intro-2",
+      type: "text",
+      role: "intro",
+      label: "Report contents",
+      title: "Report contents",
+      showTitle: true,
+      content:
+        "To help you better understand yourself, and the type of work you would enjoy, this report outlines your top two strengths and one development area. At the end of the report, you will also find tips on how to further understand and develop your natural strengths and mitigate any potential weaknesses.",
+      titleBgColor: DEFAULT_TITLE_BG,
+      contentBgColor: DEFAULT_TEXT_BG,
+    },
+    strengthsSection,
+    developmentSection,
+    {
+      id: "closing-1",
+      type: "text",
+      role: "closing",
+      label: "Hints and tips",
+      title: "Hints and tips",
+      showTitle: true,
+      content:
+        "Research shows that people who know and use their strengths often achieve better results and feel more satisfied - both in work and in everyday life. Being aware of your strengths can guide you towards roles and tasks you’ll enjoy and excel at.\n\nHere are some essential tips to help you recognise and make the most of your strengths:\n\nAsk for honest feedback\nEngage with friends, family, teachers or mentors who've seen you in action, whether it’s during a team project, a family gathering, or a casual weekend hobby session. Ask them questions: What do they know you for? Which tasks or projects do you tackle with great ease or enthusiasm? When do they naturally turn to you for help or advice?\n\nLook at your daily habits\nKeep a light diary of your activities over a week or two. Notice which tasks you jump on straight away and enjoy, and which ones you avoid or delay. This can highlight the activities that come naturally to you, as well as those that feel more like a struggle – even if you might be able to do them well.\n\nSpot moments of 'flow'\n‘Flow’ is when you’re so absorbed in what you are doing that time flies by. Think about which tasks or projects get you into that zone - whether this is solving a tricky problem, helping people, or coming up with new ideas. The personal qualities you are using in these moments will be some of your top strengths.\n\nStrategically counteract weaknesses\nEveryone has strengths and weaknesses - it’s a normal part of being human. The key is to identify where you struggle and find ways to balance or address it by using your natural talents. For example, if you lack an eye for detail, team up with someone who excels at this and can give your work a final review while you develop in this area. In return, identify how you can help them using your strengths.\n\nThank you again for completing the assessment. We hope this report helps you discover and use your strengths as you choose and develop your future career.",
+      titleBgColor: "#6f9f87",
+      contentBgColor: DEFAULT_TEXT_BG,
+    },
+  ];
+}
+
+function createBlankInitialSections(
+  entries: ConstructBankEntry[],
+): BuilderSection[] {
+  const blankStrengthMap = Object.fromEntries(entries.map((entry) => [entry.id, ""]));
+
+  return [
+    {
+      id: "header-default",
+      type: "header",
+      title: "",
+      bgColor: "#457b58",
+    },
+    {
+      id: "intro-1",
+      type: "text",
+      role: "intro",
+      label: "Introduction",
+      title: "",
+      showTitle: false,
       content: "",
       titleBgColor: DEFAULT_TITLE_BG,
       contentBgColor: DEFAULT_TEXT_BG,
     },
-    createConstructSection(entries, "strength"),
+    {
+      ...createConstructSection(entries, "strength"),
+      id: "strength-default",
+      title: "Strength Areas",
+      introText: "",
+      textByConstructId: blankStrengthMap,
+      selectedConstructId: entries[0]?.id ?? "",
+      numberToShow: "1",
+    },
     {
       id: "closing-1",
       type: "text",
       role: "closing",
       label: "Closing",
-      title: "Closing",
-      showTitle: true,
+      title: "",
+      showTitle: false,
       content: "",
       titleBgColor: DEFAULT_TITLE_BG,
       contentBgColor: DEFAULT_TEXT_BG,
@@ -195,6 +337,165 @@ function getConstructBankDefaultText(
   const match = entries.find((entry) => entry.id === constructId);
   if (!match) return "";
   return role === "strength" ? match.strengths : match.weaknesses;
+}
+
+function buildPreviewPayload(sections: BuilderSection[]): PreviewDataPayload {
+  const previewSections: PreviewReportSection[] = [];
+  const sectionStyles: Record<string, PreviewSectionStyle> = {};
+  const constructData: Record<string, { strengths: string; weaknesses: string }> = {};
+
+  sections.forEach((section) => {
+    if (section.type === "header") {
+      previewSections.push({ id: section.id, type: "header", label: "Header" });
+      sectionStyles[section.id] = {
+        titleText: section.title,
+        titleBgColor: section.bgColor,
+      };
+      return;
+    }
+
+    if (section.type === "text") {
+      previewSections.push({
+        id: section.id,
+        type: "paragraph",
+        label: section.label || section.title || "Text",
+      });
+      sectionStyles[section.id] = {
+        content: section.content,
+        titleText: section.showTitle ? section.title : "",
+        titleBgColor: section.titleBgColor,
+      };
+      return;
+    }
+
+    const previewType =
+      section.role === "strength" ? "strengths-group" : "development-group";
+    previewSections.push({
+      id: section.id,
+      type: previewType,
+      label: section.title || previewType,
+    });
+    sectionStyles[section.id] = {
+      content: section.introText,
+      titleText: section.title,
+      titleBgColor: section.titleBgColor,
+      numberToShow: Number(section.numberToShow),
+    };
+
+    const selectedConstructId = section.selectedConstructId || section.id;
+    const selectedText = section.textByConstructId[selectedConstructId] ?? "";
+    constructData[selectedConstructId] = {
+      strengths: section.role === "strength" ? selectedText : "",
+      weaknesses: section.role === "development" ? selectedText : "",
+    };
+  });
+
+  return {
+    sections: previewSections,
+    constructData,
+    settings: { templateName: "Hardcoded Template" },
+    sectionStyles,
+  };
+}
+
+function extractTemplateSections(
+  sections: BuilderSection[],
+): SavedTemplateSection[] {
+  return sections.map((section) => {
+    if (section.type === "header") {
+      return { type: "header", title: section.title };
+    }
+
+    if (section.type === "text") {
+      return {
+        type: "text",
+        role: section.role,
+        label: section.label,
+        title: section.title,
+        showTitle: section.showTitle,
+        content: section.content,
+      };
+    }
+
+    return {
+      type: "construct",
+      role: section.role,
+      title: section.title,
+      introText: section.introText,
+      selectedConstructId: section.selectedConstructId,
+      numberToShow: section.numberToShow,
+    };
+  });
+}
+
+function buildSectionsFromTemplate(
+  template: SavedTemplate,
+  entries: ConstructBankEntry[],
+): BuilderSection[] {
+  const next: BuilderSection[] = [];
+
+  template.sections.forEach((saved, idx) => {
+    if (saved.type === "header") {
+      next.push({
+        id: `header-${idx}`,
+        type: "header",
+        title: saved.title || "Feedback report for Candidate Name",
+        bgColor: "#457b58",
+      });
+      return;
+    }
+
+    if (saved.type === "text") {
+      next.push({
+        id: `text-${idx}`,
+        type: "text",
+        role:
+          saved.role === "intro" ||
+          saved.role === "closing" ||
+          saved.role === "custom"
+            ? saved.role
+            : "custom",
+        label: saved.label || saved.title || "Free Text",
+        title: saved.title || "",
+        showTitle: saved.showTitle ?? true,
+        content: saved.content || "",
+        titleBgColor: DEFAULT_TITLE_BG,
+        contentBgColor: DEFAULT_TEXT_BG,
+      });
+      return;
+    }
+
+    const role = saved.role === "development" ? "development" : "strength";
+    const base = createConstructSection(entries, role);
+    const selectedConstructId = entries.some(
+      (entry) => entry.id === saved.selectedConstructId,
+    )
+      ? saved.selectedConstructId || base.selectedConstructId
+      : base.selectedConstructId;
+
+    next.push({
+      ...base,
+      id: `construct-${role}-${idx}`,
+      title: saved.title || base.title,
+      introText: saved.introText ?? base.introText,
+      selectedConstructId,
+      numberToShow: saved.numberToShow ?? base.numberToShow,
+      titleBgColor: DEFAULT_TITLE_BG,
+      introBgColor: DEFAULT_TEXT_BG,
+      contentBgColor: DEFAULT_TEXT_BG,
+    });
+  });
+
+  if (!next.some((section) => section.type === "header")) {
+    next.unshift({
+      id: "header-fallback",
+      type: "header",
+      title: "Feedback report for Candidate Name",
+      bgColor: "#457b58",
+    });
+  }
+
+  return next;
 }
 
 function normalizePickerHex(value: string, fallback = "#ffffff"): string {
@@ -241,20 +542,131 @@ export default function ReportCanvas({
   const [constructBankEntries, setConstructBankEntries] =
     useState<ConstructBankEntry[]>(FALLBACK_ENTRIES);
   const [sections, setSections] = useState<BuilderSection[]>(() =>
-    createInitialSections(FALLBACK_ENTRIES),
+    startEmpty
+      ? createBlankInitialSections(FALLBACK_ENTRIES)
+      : createInitialSections(FALLBACK_ENTRIES),
   );
-  const [openById, setOpenById] = useState<Record<string, boolean>>({
-    "header-default": true,
-    "intro-1": true,
-    "strength-default": true,
-    "closing-1": true,
-  });
+  const [openById, setOpenById] = useState<Record<string, boolean>>(
+    startEmpty
+      ? {
+          "header-default": true,
+          "intro-1": true,
+          "strength-default": true,
+          "closing-1": true,
+        }
+      : {
+          "header-default": true,
+          "intro-1": true,
+          "intro-2": true,
+          "strength-default": true,
+          "development-default": true,
+          "closing-1": true,
+        },
+  );
 
   const [dragPayload, setDragPayload] = useState<DragPayload | null>(null);
   const [activeDropIndex, setActiveDropIndex] = useState<number | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
 
   void onUpdateReport;
+
+  useEffect(() => {
+    const onPreviewRequest = () => {
+      const payload = buildPreviewPayload(sections);
+      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(payload));
+      window.open("/preview", "_blank", "noopener,noreferrer");
+    };
+
+    window.addEventListener("report-builder:open-preview", onPreviewRequest);
+    return () => {
+      window.removeEventListener("report-builder:open-preview", onPreviewRequest);
+    };
+  }, [sections]);
+
+  useEffect(() => {
+    const onSaveTemplate = () => {
+      const name = window.prompt("Template name", "New Template")?.trim();
+      if (!name) return;
+
+      const raw = localStorage.getItem(TEMPLATE_STORAGE_KEY);
+      let existing: SavedTemplate[] = [];
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            existing = parsed.filter(
+              (item): item is SavedTemplate =>
+                !!item &&
+                typeof item.id === "string" &&
+                typeof item.name === "string" &&
+                Array.isArray(item.sections),
+            );
+          }
+        } catch {
+          existing = [];
+        }
+      }
+
+      const nextTemplate: SavedTemplate = {
+        id: crypto.randomUUID(),
+        name,
+        createdAt: new Date().toISOString(),
+        sections: extractTemplateSections(sections),
+      };
+
+      localStorage.setItem(
+        TEMPLATE_STORAGE_KEY,
+        JSON.stringify([nextTemplate, ...existing]),
+      );
+      window.dispatchEvent(new Event("report-builder:templates-updated"));
+    };
+
+    const onImportTemplate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ templateId?: string }>;
+      const templateId = customEvent.detail?.templateId;
+      if (!templateId) return;
+
+      const raw = localStorage.getItem(TEMPLATE_STORAGE_KEY);
+      if (!raw) return;
+
+      let templates: SavedTemplate[] = [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          templates = parsed.filter(
+            (item): item is SavedTemplate =>
+              !!item &&
+              typeof item.id === "string" &&
+              typeof item.name === "string" &&
+              Array.isArray(item.sections),
+          );
+        }
+      } catch {
+        return;
+      }
+
+      const selected = templates.find((template) => template.id === templateId);
+      if (!selected) return;
+
+      const rebuilt = buildSectionsFromTemplate(selected, constructBankEntries);
+      setSections(rebuilt);
+      setOpenById(Object.fromEntries(rebuilt.map((section) => [section.id, true])));
+      setEditingLabelId(null);
+    };
+
+    window.addEventListener("report-builder:save-template", onSaveTemplate);
+    window.addEventListener(
+      "report-builder:import-template",
+      onImportTemplate as EventListener,
+    );
+    return () => {
+      window.removeEventListener("report-builder:save-template", onSaveTemplate);
+      window.removeEventListener(
+        "report-builder:import-template",
+        onImportTemplate as EventListener,
+      );
+    };
+  }, [constructBankEntries, sections]);
 
   useEffect(() => {
     if (!startEmpty && onHydratedFromDraft) {
