@@ -23,4 +23,14 @@ export const initialReports: FeedbackReport[] = [
     useCustomEmailTemplate: false,
     sendgridTemplateId: "",
   },
+  {
+    id: "r3",
+    tenantId: "t1",
+    name: "Team Feedback Report",
+    reportType: "hiring-manager",
+    createdAt: "2025-12-10",
+    sendOnCompletion: false,
+    useCustomEmailTemplate: false,
+    sendgridTemplateId: "",
+  },
 ];
