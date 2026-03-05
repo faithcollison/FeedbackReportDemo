@@ -1,23 +1,19 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { Check, ChevronDown, Eye, Save } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface ReportSection {
   id: string
   type: string
   label: string
-  parentId?: string
 }
 
 interface SectionStyle {
-  bgColor: string
-  textColor: string
   content?: string
-  logoUrl?: string
-  showTitle?: boolean
   titleText?: string
   titleBgColor?: string
-  titleTextColor?: string
 }
 
 interface ConstructData {
@@ -25,14 +21,9 @@ interface ConstructData {
   weaknesses: string
 }
 
-interface ReportSettings {
-  templateName: string
-}
-
 interface PreviewData {
   sections: ReportSection[]
   constructData: Record<string, ConstructData>
-  settings: ReportSettings
   sectionStyles: Record<string, SectionStyle>
 }
 
@@ -45,23 +36,11 @@ interface ConstructBankEntry {
 
 const CONSTRUCT_BANK_STORAGE_KEY = "report-builder-construct-bank"
 
-const CONSTRUCTS = [
-  { id: "collaboration", name: "Collaboration" },
-  { id: "growth", name: "Growth Mindset" },
-  { id: "resilience", name: "Resilience" },
-  { id: "analytical", name: "Analytical Mindset" },
-  { id: "numerical", name: "Numerical Mindset" },
-  { id: "problem-solving", name: "Problem Solving" },
-]
+const FALLBACK_STRENGTH_TEXT =
+  "Demonstrates strong assertiveness in professional settings, with confidence in communicating ideas and decisions."
 
-function shuffleArray<T>(items: T[]): T[] {
-  const arr = [...items]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  return arr
-}
+const FALLBACK_WEAKNESS_TEXT =
+  "Could improve attention to detail by introducing a structured review routine before final submission."
 
 export default function PreviewPage() {
   const [data, setData] = useState<PreviewData | null>(null)
@@ -98,186 +77,211 @@ export default function PreviewPage() {
     }
   }, [])
 
-  const randomPools = useMemo(() => {
-    if (!data) {
-      return { strengths: [] as { name: string; text: string }[], weaknesses: [] as { name: string; text: string }[] }
-    }
+  const derived = useMemo(() => {
+    const sections = data?.sections ?? []
+    const styles = data?.sectionStyles ?? {}
 
-    const bankStrengths = constructBankEntries
-      .map((entry) => ({ name: entry.name, text: entry.strengths }))
-      .filter((item) => item.text.trim())
-    const bankWeaknesses = constructBankEntries
-      .map((entry) => ({ name: entry.name, text: entry.weaknesses }))
-      .filter((item) => item.text.trim())
+    const header = sections.find((s) => s.type === "header")
+    const headerStyle = header ? styles[header.id] : undefined
 
-    const fallbackStrengths = CONSTRUCTS
-      .map((c) => ({ name: c.name, text: data.constructData[c.id]?.strengths ?? "" }))
-      .filter((i) => i.text.trim())
-    const fallbackWeaknesses = CONSTRUCTS
-      .map((c) => ({ name: c.name, text: data.constructData[c.id]?.weaknesses ?? "" }))
-      .filter((i) => i.text.trim())
+    const introductionSections = sections.filter((s) => s.type === "paragraph").slice(0, 3)
+
+    const strengthGroup = sections.find((s) => s.type === "strengths-group")
+    const strengthStyle = strengthGroup ? styles[strengthGroup.id] : undefined
+
+    const developmentGroup = sections.find((s) => s.type === "development-group")
+    const developmentStyle = developmentGroup ? styles[developmentGroup.id] : undefined
+
+    const bankStrength = constructBankEntries.find((entry) => entry.strengths.trim())?.strengths
+    const bankWeakness = constructBankEntries.find((entry) => entry.weaknesses.trim())?.weaknesses
+
+    const constructStrength =
+      Object.values(data?.constructData ?? {}).find((value) => value.strengths.trim())?.strengths ?? ""
+    const constructWeakness =
+      Object.values(data?.constructData ?? {}).find((value) => value.weaknesses.trim())?.weaknesses ?? ""
 
     return {
-      strengths: shuffleArray(bankStrengths.length > 0 ? bankStrengths : fallbackStrengths),
-      weaknesses: shuffleArray(bankWeaknesses.length > 0 ? bankWeaknesses : fallbackWeaknesses),
+      reportTitle: headerStyle?.titleText || "Feedback report for Candidate Name",
+      titleColor: headerStyle?.titleBgColor || "#457b58",
+      introductionSections:
+        introductionSections.length > 0
+          ? introductionSections
+          : [
+              { id: "i1", type: "paragraph", label: "Introduction Section 1" },
+              { id: "i2", type: "paragraph", label: "Introduction Section 2" },
+              { id: "i3", type: "paragraph", label: "Introduction Section 3" },
+            ],
+      strengthIntro:
+        strengthStyle?.content ||
+        "The following areas represent your greatest strengths based on your assessment results:",
+      developmentIntro:
+        developmentStyle?.content ||
+        "The following areas have been identified as opportunities for development:",
+      strengthText: bankStrength || constructStrength || FALLBACK_STRENGTH_TEXT,
+      weaknessText: bankWeakness || constructWeakness || FALLBACK_WEAKNESS_TEXT,
     }
-  }, [data, constructBankEntries])
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">No preview data found. Open the preview from the Report Builder.</p>
-      </div>
-    )
-  }
-
-  const { sections, constructData, settings, sectionStyles } = data
-  const PREVIEW_CANDIDATE_NAME = "Joe Bloggs"
-
-  function getStyle(sectionId: string): SectionStyle {
-    return sectionStyles[sectionId] ?? { bgColor: "#ffffff", textColor: "#000000" }
-  }
-
-  function resolveHeaderTitle(template: string): string {
-    const candidateName = PREVIEW_CANDIDATE_NAME
-    return template
-      .replace(/\{\{\s*candidateName\s*\}\}/g, candidateName)
-      .replace(/\{\{\s*candidate\s*\}\}/g, candidateName)
-  }
-
-  function resolveHeaderSubtitle(template: string): string {
-    const assessmentName = "Example Assessment 1"
-    return template.replace(/\{\{\s*assessmentName\s*\}\}/g, assessmentName)
-  }
-
-  function renderSectionTitle(s: SectionStyle) {
-    if (!s.showTitle || !s.titleText?.trim()) return null
-    return (
-      <div
-        className="px-10 py-4"
-        style={{
-          backgroundColor: s.titleBgColor ?? "#6f9f87",
-          color: s.titleTextColor ?? "#ffffff",
-        }}
-      >
-        <h2 className="text-xl font-bold">{s.titleText}</h2>
-      </div>
-    )
-  }
-
-  function getRankWithinGroup(section: ReportSection, type: "strengths" | "weaknesses"): number {
-    if (!section.parentId) return 0
-    const siblings = sections.filter((s) => s.parentId === section.parentId && s.type === type)
-    const idx = siblings.findIndex((s) => s.id === section.id)
-    return idx >= 0 ? idx : 0
-  }
-
-  function styleProps(sectionId: string): React.CSSProperties {
-    const s = getStyle(sectionId)
-    const props: React.CSSProperties = {}
-    if (s.bgColor && s.bgColor !== "#ffffff") props.backgroundColor = s.bgColor
-    if (s.textColor && s.textColor !== "#000000") props.color = s.textColor
-    return props
-  }
+  }, [constructBankEntries, data])
 
   return (
-    <div className="mx-auto max-w-3xl my-8 border rounded-lg overflow-hidden bg-white shadow-lg">
-      {sections.map((section) => {
-        const s = getStyle(section.id)
-        const sp = styleProps(section.id)
+    <div className="min-h-screen bg-[#dbe5e1] text-[#1f2937]">
+      <header className="border-b border-[#7db392] bg-[#8fc0a7] px-4 py-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-[#2b3b39]">For assessment: Demo Assessment v1.7</p>
+          <div className="flex items-center gap-2">
+            <Button className="h-8 border border-[#7fa98f] bg-white px-3 text-xs text-[#30443f] hover:bg-[#f4f8f6]">
+              <Eye className="mr-1.5 size-3.5" />
+              Preview Report
+            </Button>
+            <Button className="h-8 border border-[#3f6d54] bg-[#4f7f64] px-3 text-xs text-white hover:bg-[#456f58]">
+              <Save className="mr-1.5 size-3.5" />
+              Save Report Template
+            </Button>
+          </div>
+        </div>
+      </header>
 
-        switch (section.type) {
-          case "header":
-            return (
-              <div key={section.id} className="px-10 py-12" style={sp}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h1 className="text-4xl font-light leading-tight">
-                      {resolveHeaderTitle(s.titleText || "Feedback report for {{candidateName}}")}
-                    </h1>
-                    {s.content && (
-                      <p className="mt-6 text-base opacity-80">{resolveHeaderSubtitle(s.content)}</p>
-                    )}
+      <main className="mx-auto w-full max-w-5xl px-4 py-5">
+        <div className="mx-auto max-w-3xl space-y-3">
+          <section className="overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dde2e6] px-4 py-3">
+              <h2 className="text-[30px] font-semibold leading-none">Report Title</h2>
+              <ChevronDown className="size-4 text-[#6b7280]" />
+            </div>
+            <div className="space-y-3 px-4 py-3">
+              <div className="grid grid-cols-[1fr_92px] gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-semibold text-[#374151]">Title Text</p>
+                  <div className="h-10 rounded-md border border-[#cfd6dc] bg-white px-3 text-sm leading-10 text-[#6b7280]">
+                    {derived.reportTitle}
                   </div>
-                  {s.logoUrl && (
-                    <img src={s.logoUrl} alt="Logo" className="max-h-16 object-contain" />
-                  )}
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-semibold text-[#374151]">Title Color</p>
+                  <div className="h-10 rounded-md border border-[#cfd6dc] bg-white p-1">
+                    <div className="h-full rounded-sm border border-[#8ea4a0]" style={{ backgroundColor: derived.titleColor }} />
+                  </div>
                 </div>
               </div>
-            )
+              <div className="rounded-sm px-3 py-2 text-sm font-semibold text-white" style={{ backgroundColor: derived.titleColor }}>
+                {derived.reportTitle}
+              </div>
+            </div>
+          </section>
 
-          case "paragraph":
-            return (
-              <div key={section.id}>
-                {renderSectionTitle(s)}
-                <div className="px-10 py-6" style={sp}>
-                  {s.content ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{s.content}</p>
-                  ) : (
-                    <p className="text-sm italic opacity-40">No content entered.</p>
-                  )}
+          <section className="overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dde2e6] px-4 py-3">
+              <h2 className="text-[30px] font-semibold leading-none">Introduction Sections</h2>
+              <ChevronDown className="size-4 text-[#6b7280]" />
+            </div>
+            <div className="space-y-2 px-4 py-3">
+              {derived.introductionSections.map((section, index) => (
+                <div
+                  key={section.id}
+                  className={`flex h-11 items-center justify-between rounded-md border px-3 text-sm ${
+                    index === 2
+                      ? "border-[#e2e6ea] bg-[#eef1f3] text-[#9ca3af]"
+                      : "border-[#d4d9de] bg-white text-[#1f2937]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`size-3.5 rounded-sm border ${index === 2 ? "border-[#bcc5cd] bg-[#d8dde2]" : "border-[#2c78d2] bg-[#2f80ed]"}`} />
+                    <span>{section.label || `Introduction Section ${index + 1}`}</span>
+                  </div>
+                  <ChevronDown className="size-4 text-[#9ca3af]" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dde2e6] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-0.5 rounded-full bg-[#33b06f]" />
+                <h2 className="text-[30px] font-semibold leading-none">Strength Areas</h2>
+                <span className="rounded-md bg-[#dff3e7] px-2 py-0.5 text-xs font-semibold text-[#2f8f62]">4/5 complete</span>
+              </div>
+              <ChevronDown className="size-4 text-[#6b7280]" />
+            </div>
+            <div className="space-y-3 px-4 py-3">
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-semibold">Section Introduction Text</p>
+                  <div className="h-10 rounded-md border border-[#cfd6dc] bg-white px-3 text-xs leading-10 text-[#374151]">
+                    {derived.strengthIntro}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-semibold">Number to Show</p>
+                  <div className="flex h-10 items-center justify-between rounded-md border border-[#cfd6dc] bg-[#f2f4f6] px-3 text-sm">
+                    <span>Top 3</span>
+                    <ChevronDown className="size-4 text-[#9ca3af]" />
+                  </div>
                 </div>
               </div>
-            )
 
-          case "strengths-group":
-          case "development-group":
-            if (!s.content && !s.showTitle) return null
-            return (
-              <div key={section.id}>
-                {renderSectionTitle(s)}
-                {s.content && (
-                  <div className="px-10 py-6" style={sp}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{s.content}</p>
-                  </div>
-                )}
+              <div className="border-t border-[#e4e8ec] pt-3">
+                <p className="text-xs font-semibold">Edit Construct Text</p>
+                <p className="mt-0.5 text-[11px] text-[#8a94a2]">
+                  Select a construct to edit. System will automatically show top 3 based on candidate performance.
+                </p>
               </div>
-            )
 
-          case "strengths": {
-            const rank = getRankWithinGroup(section, "strengths")
-            const item =
-              randomPools.strengths.length > 0
-                ? randomPools.strengths[rank % randomPools.strengths.length]
-                : undefined
-            return (
-              <div key={section.id} className="px-10 py-6" style={sp}>
-                {!item ? (
-                  <p className="text-sm italic opacity-40">No strengths content added.</p>
-                ) : (
-                  <div>
-                    <h3 className="text-base font-bold mb-2">{item.name}</h3>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
+              <div className="grid grid-cols-[260px_1fr] gap-3">
+                <div>
+                  <div className="flex h-10 items-center justify-between rounded-md border border-[#cfd6dc] bg-[#f2f7f4] px-3 text-sm font-medium text-[#2f4f43]">
+                    <span>Assertiveness</span>
+                    <Check className="size-4 text-[#33b06f]" />
                   </div>
-                )}
-              </div>
-            )
-          }
-
-          case "weaknesses": {
-            const rank = getRankWithinGroup(section, "weaknesses")
-            const item =
-              randomPools.weaknesses.length > 0
-                ? randomPools.weaknesses[rank % randomPools.weaknesses.length]
-                : undefined
-            return (
-              <div key={section.id} className="px-10 py-6" style={sp}>
-                {!item ? (
-                  <p className="text-sm italic opacity-40">No development area content added.</p>
-                ) : (
-                  <div>
-                    <h3 className="text-base font-bold mb-2">{item.name}</h3>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{item.text}</p>
+                  <p className="mt-1 text-[11px] text-[#8a94a2]">Communication</p>
+                </div>
+                <div className="rounded-md border border-[#cfd6dc] bg-white p-2">
+                  <p className="min-h-24 text-sm text-[#374151]">{derived.strengthText}</p>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-[#8a94a2]">
+                    <span>{derived.strengthText.length} characters</span>
+                    <span className="text-[#33b06f]">Text saved</span>
                   </div>
-                )}
+                </div>
               </div>
-            )
-          }
+            </div>
+          </section>
 
-          default:
-            return null
-        }
-      })}
+          <section className="overflow-hidden rounded-lg border border-[#d5dbe0] bg-[#f7f8f9] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dde2e6] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-0.5 rounded-full bg-[#4f79ff]" />
+                <h2 className="text-[30px] font-semibold leading-none">Development Areas</h2>
+                <span className="rounded-md bg-[#e5ecff] px-2 py-0.5 text-xs font-semibold text-[#4f79ff]">3/5 complete</span>
+              </div>
+              <ChevronDown className="size-4 text-[#6b7280]" />
+            </div>
+            <div className="space-y-3 px-4 py-3">
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-semibold">Section Introduction Text</p>
+                  <div className="h-10 rounded-md border border-[#cfd6dc] bg-white px-3 text-xs leading-10 text-[#374151]">
+                    {derived.developmentIntro}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-semibold">Number to Show</p>
+                  <div className="flex h-10 items-center justify-between rounded-md border border-[#cfd6dc] bg-[#f2f4f6] px-3 text-sm">
+                    <span>Top 2</span>
+                    <ChevronDown className="size-4 text-[#9ca3af]" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-md border border-[#cfd6dc] bg-white p-2">
+                <p className="min-h-16 text-sm text-[#374151]">{derived.weaknessText}</p>
+                <div className="mt-2 flex items-center justify-between text-[11px] text-[#8a94a2]">
+                  <span>{derived.weaknessText.length} characters</span>
+                  <span className="text-[#4f79ff]">Ready</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
   )
 }
