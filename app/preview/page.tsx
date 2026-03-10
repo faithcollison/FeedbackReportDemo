@@ -37,6 +37,7 @@ interface ConstructBankEntry {
 
 const PREVIEW_STORAGE_KEY = "report-preview-data"
 const CONSTRUCT_BANK_STORAGE_KEY = "report-builder-construct-bank"
+const DEFAULT_TITLE_BG = "#6f9f87"
 
 function normalizeTitle(title: string): string {
   return title
@@ -189,7 +190,7 @@ export default function PreviewPage() {
                     {style?.titleText?.trim() && (
                       <div
                         className="mb-4 px-5 py-3 text-lg font-semibold text-white"
-                        style={{ backgroundColor: style.titleBgColor || "#6f9f87" }}
+                        style={{ backgroundColor: style.titleBgColor || DEFAULT_TITLE_BG }}
                       >
                         {style.titleText}
                       </div>
@@ -204,7 +205,7 @@ export default function PreviewPage() {
                   <section key={section.id} className="mb-8">
                     <div
                       className="mb-4 px-5 py-3 text-lg font-semibold text-white"
-                      style={{ backgroundColor: style?.titleBgColor || "#6f9f87" }}
+                      style={{ backgroundColor: style?.titleBgColor || DEFAULT_TITLE_BG }}
                     >
                       {style?.titleText || "Strength Areas"}
                     </div>
@@ -226,7 +227,7 @@ export default function PreviewPage() {
                   <section key={section.id} className="mb-8">
                     <div
                       className="mb-4 px-5 py-3 text-lg font-semibold text-white"
-                      style={{ backgroundColor: style?.titleBgColor || "#d4b15a" }}
+                      style={{ backgroundColor: style?.titleBgColor || DEFAULT_TITLE_BG }}
                     >
                       {style?.titleText || "Development Areas"}
                     </div>

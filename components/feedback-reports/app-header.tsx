@@ -14,14 +14,12 @@ import {
 interface AppHeaderProps {
   currentReport: FeedbackReport | null
   assessmentName: string
-  onNavigateHome: () => void
   onNavigateBack?: () => void
 }
 
 export function AppHeader({
   currentReport,
   assessmentName,
-  onNavigateHome,
   onNavigateBack,
 }: AppHeaderProps) {
   if (currentReport) {
@@ -66,7 +64,7 @@ export function AppHeader({
 
   return (
     <header className="border-b border-[#9ccbb4] bg-[#8fc0a7] px-6 py-4">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+      <div className="mx-auto flex w-full max-w-7xl items-center gap-4">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -78,13 +76,6 @@ export function AppHeader({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <Button
-          variant="outline"
-          className="h-9 rounded-full border-0 bg-[#3c3d41] px-5 text-sm text-white hover:bg-[#2f3033] hover:text-white"
-          onClick={onNavigateHome}
-        >
-          Manage Reports
-        </Button>
       </div>
     </header>
   )

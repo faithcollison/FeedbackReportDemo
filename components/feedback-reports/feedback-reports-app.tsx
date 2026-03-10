@@ -80,9 +80,6 @@ export function FeedbackReportsApp({
       <AppHeader
         currentReport={currentReport}
         assessmentName={assessmentName}
-        onNavigateHome={() => {
-          setCurrentReportId(null)
-        }}
         onNavigateBack={onNavigateBack}
       />
       {currentReport ? (
