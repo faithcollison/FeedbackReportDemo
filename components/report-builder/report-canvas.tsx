@@ -135,7 +135,7 @@ type DragPayload = { kind: "move"; sectionId: string };
 const CONSTRUCT_BANK_STORAGE_KEY = "report-builder-construct-bank";
 const PREVIEW_STORAGE_KEY = "report-preview-data";
 const TEMPLATE_STORAGE_KEY = "report-builder-templates";
-const DEFAULT_TITLE_BG = "#f7f8f9";
+const DEFAULT_TITLE_BG = "#6f9f87";
 const DEFAULT_TEXT_BG = "#ffffff";
 
 const FALLBACK_ENTRIES: ConstructBankEntry[] = [
@@ -260,7 +260,7 @@ function createInitialSections(
       showTitle: true,
       content:
         "You completed an online assessment which measures the strengths that enable high performance at Amey.\n\nDuring the assessment, your responses were carefully scored using a methodology based on reputable, peer-reviewed science, with robust evidence supporting its effectiveness. The scoring algorithms promote diversity and neurodiversity by adapting to every candidate to account for individual differences in processing information and making decisions.",
-      titleBgColor: "#6f9f87",
+      titleBgColor: DEFAULT_TITLE_BG,
       contentBgColor: DEFAULT_TEXT_BG,
     },
     {
@@ -286,7 +286,7 @@ function createInitialSections(
       showTitle: true,
       content:
         "Research shows that people who know and use their strengths often achieve better results and feel more satisfied - both in work and in everyday life. Being aware of your strengths can guide you towards roles and tasks you’ll enjoy and excel at.\n\nHere are some essential tips to help you recognise and make the most of your strengths:\n\nAsk for honest feedback\nEngage with friends, family, teachers or mentors who've seen you in action, whether it’s during a team project, a family gathering, or a casual weekend hobby session. Ask them questions: What do they know you for? Which tasks or projects do you tackle with great ease or enthusiasm? When do they naturally turn to you for help or advice?\n\nLook at your daily habits\nKeep a light diary of your activities over a week or two. Notice which tasks you jump on straight away and enjoy, and which ones you avoid or delay. This can highlight the activities that come naturally to you, as well as those that feel more like a struggle – even if you might be able to do them well.\n\nSpot moments of 'flow'\n‘Flow’ is when you’re so absorbed in what you are doing that time flies by. Think about which tasks or projects get you into that zone - whether this is solving a tricky problem, helping people, or coming up with new ideas. The personal qualities you are using in these moments will be some of your top strengths.\n\nStrategically counteract weaknesses\nEveryone has strengths and weaknesses - it’s a normal part of being human. The key is to identify where you struggle and find ways to balance or address it by using your natural talents. For example, if you lack an eye for detail, team up with someone who excels at this and can give your work a final review while you develop in this area. In return, identify how you can help them using your strengths.\n\nThank you again for completing the assessment. We hope this report helps you discover and use your strengths as you choose and develop your future career.",
-      titleBgColor: "#6f9f87",
+      titleBgColor: DEFAULT_TITLE_BG,
       contentBgColor: DEFAULT_TEXT_BG,
     },
   ];
